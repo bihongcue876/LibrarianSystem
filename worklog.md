@@ -43,7 +43,7 @@
 | 9 | 生成用例文本（31 个用例） | 实验一 · Elaboration | `03-use-cases.md` | ⏳ 待审查 |
 | 10 | 生成用例图（5 张 Mermaid 图） | 实验一 · Elaboration | `04-use-case-model.md` | ⏳ 待审查 |
 | 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⏳ 待审查 |
-| 12 | 生成领域类图 | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⬜ 下一步 |
+| 12 | 生成领域类图（7 张 Mermaid 图） | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⏳ 待审查 |
 | 13 | 生成架构设计 | 实验一 · Elaboration | `07-architecture.md` | ⬜ 待办 |
 | 14 | 生成包图 | 实验一 · Elaboration | `08-package-diagram.md` | ⬜ 待办 |
 | 15 | 生成数据库设计 | 实验一 · Elaboration | `13-database-design.md` | ⬜ 待办 |
@@ -391,15 +391,55 @@
   | `Reader` 继承层次 | 保留抽象 `Reader` 基类，三种具体读者类各自持有额度参数 |
   | 馆藏继承 | `LibraryItem` 抽象 + `Book`/`Magazine`/`Thesis` 三子类，对应单表继承（D-49） |
   | 领域服务归属 | 跨实体规则（可借性判定、续借判定、预约队列）抽为领域服务，不放在实体内部 |
+- **Git**：`7f64fb7` docs: add domain model
+- **状态**：✅ 完成（文档已提交，待用户审查）
+
+---
+
+### 步骤 12：生成领域类图 06-domain-class-diagram.md
+
+- **时间**：2026-09-19 18:12 - 18:25
+- **阶段**：实验一 · Elaboration（细化阶段）
+- **触发**：实验流程要求（实验一第十三节步骤 9）
+- **操作**：
+  1. 依据 `05-domain-model.md` 生成 `specs/06-domain-class-diagram.md`，共 **7 张 Mermaid `classDiagram`**：
+     - 图 1：读者与账号模块（Reader 继承体系）
+     - 图 2：借阅证模块（BorrowCard + CardNumber + CardStatus）
+     - 图 3：书目与馆藏模块（BookTitle + LibraryItem 继承体系）
+     - 图 4：流通模块（Loan + DateRange + 2 个领域服务）
+     - 图 5：预约模块（Reservation + 队列服务）
+     - 图 6：罚款与规则模块（FineRecord + Money + BorrowPolicy + FineRule）
+     - 图 7：全局总览（11 个实体的跨模块关系与多重性）
+  2. 附「类图阅读指南」章节：UML 记号对照表、领域对象立体分类表、分册策略说明。
+  3. 每张图后附「图 N 说明」，解释关键设计而非复述图面内容。
+  4. §9 关系汇总表按 UML 四类关系分列：泛化（5 条）、组合（1 条）、关联（10 条）、依赖（5 条），另加「依赖注入方向」说明。
+  5. §10 撰写 **5 处建模决策说明**，记录非显然的设计取舍及理由。
+  6. §11 与实验文档要求的对照表，16 项逐条验证。
+- **产出**：`specs/06-domain-class-diagram.md`（新建）
+- **关键决策**：
+  | 项 | 结论 |
+  |---|---|
+  | 分册策略 | 单图 29 对象可读性差，拆为 7 张按模块分册 + 1 张全局总览 |
+  | 员工账号建模 | `Librarian` / `SystemAdmin` **不继承** `Reader`，仅为"能登录"不足以构成继承 |
+  | 员工账号公共基类 | **不抽** `Account` 基类，抽出会形成贫血抽象 |
+  | 题录/副本分离 | 明确在图中体现 `BookTitle` 组合 `LibraryItem`，并在决策说明中论证 |
+  | `OVERDUE` 状态 | 保留为领域概念但标注为**派生状态**，避免实现者误持久化 |
+  | 规则对象标注 | `BorrowPolicy` / `FineRule` 标注 `<<strategy>>` 构造型 |
+- **发现并记录的问题**：无新增规格冲突；5 处建模决策已写入文档 §10 供人工质询
 - **状态**：⏳ 待用户审查
 
 ---
 
-### 步骤 12：生成领域类图 06-domain-class-diagram.md（下一步）
+### 步骤 13：生成架构设计 07-architecture.md（下一步）
 
 - **阶段**：实验一 · Elaboration（细化阶段）
-- **触发**：实验流程要求（实验一第十三节步骤 9）
-- **待办**：依据 `05-domain-model.md` 生成 Mermaid 类图，展示 11 个实体 + 值对象 + 领域服务的属性、方法与关系（继承、组合、关联、依赖），并标注多重性。
-- **要求**：必须体现 Reader 继承体系、LibraryItem 继承体系；必须包含 BorrowCard、Loan、Reservation、BorrowPolicy、FineRule、FineRecord；须以 Mermaid `classDiagram` 呈现。
+- **触发**：实验流程要求（实验一第十四节步骤 10）
+- **待办**：生成 `specs/07-architecture.md`，内容须包含：
+  1. 分层架构（presentation / application / domain / infrastructure）的职责边界与依赖方向
+  2. MVC 在 FastAPI 中的映射（routers = Controller）
+  3. 技术选型与部署视图
+  4. 横切关注点：认证鉴权、异常处理、日志与审计、事务管理
+  5. 借阅/归还/预约/罚款的业务流程在分层架构中的落点
+  6. 架构决策记录（ADR 形式）
 
 ---
