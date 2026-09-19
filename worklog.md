@@ -45,7 +45,8 @@
 | 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⏳ 待审查 |
 | 12 | 生成领域类图（7 张 Mermaid 图） | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⏳ 待审查 |
 | 13 | 生成架构设计（4 层 + 8 条 ADR） | 实验一 · Elaboration | `07-architecture.md` | ⏳ 待审查 |
-| 14 | 生成包图 | 实验一 · Elaboration | `08-package-diagram.md` | ⬜ 下一步 |
+| 14 | 生成包图（7 张 Mermaid 图） | 实验一 · Elaboration | `08-package-diagram.md` | ⏳ 待审查 |
+| 15 | 生成数据库设计 | 实验一 · Elaboration | `13-database-design.md` | ⬜ 下一步 |
 | 15 | 生成数据库设计 | 实验一 · Elaboration | `13-database-design.md` | ⬜ 待办 |
 | 16 | 生成风险分析与审查清单 | 实验一 · Elaboration | `17`、`18` | ⬜ 待办 |
 | 17 | 人工审查与修订 | 实验一 · Elaboration | 修订 specs | ⬜ 待办 |
@@ -471,15 +472,54 @@
 
 ---
 
-### 步骤 14：生成包图 08-package-diagram.md（下一步）
+### 步骤 14：生成包图 08-package-diagram.md
+
+- **时间**：2026-09-19 18:09 - 18:26
+- **阶段**：实验一 · Elaboration（细化阶段）
+- **触发**：实验流程要求（实验一第十五节步骤 11）+ 用户指令"继续写吧，没什么问题"
+- **操作**：
+  1. 生成 `specs/08-package-diagram.md`，共 **7 张 Mermaid 图**：
+     - 图 1：顶层包图（四层包 + 依赖方向 + 依赖倒置反转点）
+     - 图 2：包间依赖（`classDiagram`，标注 `<<import>>` / `<<access>>` / `<<realize>>` 构造型）
+     - 图 3：应用层内部包图（7 个服务 × 7 个 Repository 接口的依赖矩阵）
+     - 图 4：领域层内部包图（6 个子包 + 7 条内部依赖规则）
+     - 图 5：基础设施层内部包图（ORM 模型 / Mapper / Repository 实现三层）
+     - 图 6：违规依赖示例（4 类典型违规 + 危害分析）
+     - 图 7：主程序与依赖装配（依赖倒置的落点）
+  2. **解决用户可能质疑的核心问题**：§1 撰写「业务视角 vs 技术视角」映射矩阵，逐项说明 `05-domain-model.md` 的 7 个限界上下文如何映射到 `07-architecture.md` 的四层目录，论证两套划分不冲突。
+  3. 定义 **5 条包间依赖规则（R-1 ~ R-5）** 与 **7 条领域层内部规则（D-1 ~ D-7）**，每条均给出 grep 检查命令，使依赖约束**可机械验证**。
+  4. §7 列出 4 类典型违规依赖、危害与宪法条款对应，并给出 4 层防线与可直接执行的检查命令。
+  5. §10 与宪法第五、六、八、十三条逐条对照。
+- **产出**：`specs/08-package-diagram.md`（新建）
+- **关键决策**：
+  | 项 | 结论 |
+  |---|---|
+  | 两套视角处理 | 业务模块（限界上下文）× 技术层（四层）用**映射矩阵**对上，不合并为一套 |
+  | `presentation → domain` 依赖 | 允许 `<<access>>` 但**收紧为仅枚举与异常**，不得访问实体（避免无价值的枚举重复定义） |
+  | `fine` 模块无独立路由 | 罚款无独立用户操作入口——由还书自动触发或馆员在流通窗口收缴，故落在 `CirculationService` / `PolicyService` |
+  | `CirculationService` 依赖 7 个 Repository | 判定为**可接受**（还书业务天然跨模块），但给出风险提示与缓解措施；定义"单方法超 50 行需拆分"的审查阈值 |
+  | 领域层内部禁止环 | 规则 D-7：`entities` **不得**依赖 `domain_services`，否则形成循环；协调职责归应用层 |
+  | Mapper 层定性 | 明确为宪法第五条约束的**必然产物**，非过度设计 |
+- **发现的问题**：无新增规格冲突。`fine` 模块的路由归属、`CirculationService` 的耦合宽度属设计判断，已写入文档供人工质询
+- **状态**：⏳ 待用户审查
+
+---
+
+### 步骤 15：生成数据库设计 13-database-design.md（下一步）
 
 - **阶段**：实验一 · Elaboration（细化阶段）
-- **触发**：实验流程要求（实验一第十五节步骤 11）
-- **待办**：生成 `specs/08-package-diagram.md`，以 Mermaid `graph` 或 `classDiagram` 呈现包结构，须体现：
-  1. 四层包划分与依赖方向（presentation → application → domain ← infrastructure）
-  2. 应用层 `ports/` 的接口定义位置与基础设施层实现的反向依赖
-  3. **两套视角的映射**：`05-domain-model.md` 的 7 个限界上下文模块（业务视角）如何对应 `07-architecture.md` §8 的分层目录（技术视角）
-  4. 禁止的反向依赖（用虚线红色标注违规路径）
-  5. 与宪法第五条、第六条的对照表
+- **触发**：实验流程要求（实验一第十六节步骤 12）
+- **待办**：生成 `specs/13-database-design.md`，内容须包含：
+  1. 11 张表的完整关系模式（字段名、类型、约束、默认值、索引、外键）
+  2. **单表继承的落地方案**：`library_items` 表用 `item_type` 判别字段承载 `Book`/`Magazine`/`Thesis`（决策 D-49/D-50）
+  3. `readers` 表的单表继承方案：承载 `Reader` 继承体系（含 `reader_type` 与 `student_type`）
+  4. ER 图（Mermaid `erDiagram`，按可视化规范应使用 `erDiagram` 而非 SVG）
+  5. 规则表初始数据（`borrow_policies` 5 行、`fine_rules` 5 行）
+  6. **软删除字段与唯一约束的冲突处理**（如 `isbn` 全局唯一但记录软删除后如何处理）
+  7. `Money` / `Decimal` 的字段类型映射（`Numeric(10,2)`）
+  8. 时间字段统一 `DateTime` 存 UTC
+  9. 索引设计（查询路径驱动：条码、证号、用户名、`created_at` 队列排序等）
+  10. 领域模型与表结构的映射对照表（说明单表继承与多态的取舍）
+  11. ADR-03 预留的 `version` 字段扩展位说明
 
 ---
