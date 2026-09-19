@@ -635,7 +635,8 @@ ORDER BY created_at ASC, reservation_id ASC;
 | `status` | VARCHAR(20) | NOT NULL, CHECK | `UNPAID` / `PAID` |
 | `created_at` | DATETIME | NOT NULL | 产生时刻（UTC） |
 | `paid_at` | DATETIME | NULL | 缴纳时刻（UTC） |
-| `operator_id` | INTEGER | **NULL**, FK | 收缴经办人；图书管理员与管理员共用此列，见下 |
+| `operator_id` | INTEGER | **NULL** | 收缴经办人；图书管理员与管理员共用此列，见下 |
+| `operator_role` | VARCHAR(20) | **NULL**, CHECK | 收缴人角色（`LIBRARIAN` / `ADMIN`），与 `operator_id` 配合消歧 |
 
 **CHECK 约束**：
 
@@ -645,6 +646,8 @@ CHECK (overdue_days >= 0)
 CHECK (billed_days >= 0)
 CHECK (billed_days <= overdue_days)
 CHECK ((status = 'PAID') = (paid_at IS NOT NULL))   -- 状态与时间必须一致
+CHECK (operator_role IS NULL OR operator_role IN ('LIBRARIAN','ADMIN'))
+CHECK (operator_id IS NULL OR operator_role IS NOT NULL)   -- 有经办人必有角色
 ```
 
 **`loan_id` 唯一 → 罚款的唯一性**（BR-029）：一条借阅记录最多产生一条罚款。额外罚款由 `loans.status` 与 `returned_at` 决定，无重复生成路径。
@@ -983,3 +986,4 @@ python scripts/init_db.py --admin-username admin --admin-password '<密码>'
 |---|---|---|---|
 | v1.0 | 2026-09-19 | 初版制定。11 张表完整关系模式、20 个索引（含 3 个部分唯一索引）、单表继承映射策略、金额精度方案（`MoneyType`）、软删除与唯一约束冲突处理、种子数据。 | Agent 起草 |
 | v1.1 | 2026-09-19 | ① §3 重写「表 ↔ 领域对象」对应关系（14 个实体类 → 9 张实体表 + 2 张规则表 = 11 张），补数量核算；② §7.1 新增「首个系统管理员的密码处理」——命令行参数传入、无默认值；③ 术语统一为「图书管理员」。 | Agent 自检后修订 |
+| v1.2 | 2026-09-19 | §4.9 `fine_records` 字段表补 `operator_role` 行（v1.1 文字说明有但字段表漏列），并补两条 CHECK 约束（角色合法 + 有经办人必有角色）。 | Agent 修订 |

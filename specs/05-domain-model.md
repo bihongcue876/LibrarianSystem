@@ -71,6 +71,18 @@
 
 > **计数口径**：实体数含抽象基类（`Reader`、`LibraryItem`）与其全部具体子类（`StudentReader`、`TeacherReader`、`Book`、`Magazine`、`Thesis`）。
 
+### 1.3 审计字段约定
+
+为聚焦业务概念，**本文件各实体的"关键属性"表仅列业务属性**，统一审计字段不在每个实体重复列示。下表为全部实体共享的审计字段，落库时由 `13-database-design.md` 各表统一加列：
+
+| 字段 | 类型 | 适用实体 | 说明 |
+|---|---|---|---|
+| `created_at` | 时间戳（UTC） | 全部实体 | 创建时刻 |
+| `updated_at` | 时间戳（UTC），可空 | `readers`、`librarians`、`system_admins`、`book_titles`、`borrow_policies`、`fine_rules` | 最后修改时刻（不可变实体如 `Loan`、`FineRecord` 不设） |
+| `is_deleted` | 布尔 | `readers`、`librarians`、`system_admins`、`book_titles` | 软删除标记（`BorrowCard` 用 `status=CANCELLED`、`LibraryItem` 用 `status=REMOVED` 代替，详见 `13-database-design.md` §1.5） |
+
+> **字段核对提示**：将本文件实体属性与 `13-database-design.md` 表字段核对时，应**先扣除上表的审计字段**再比业务字段，否则会持续显示"13 多 created_at/updated_at"这类假差异。
+
 ---
 
 ## 2. 读者模块（reader）
@@ -399,6 +411,7 @@
 | `item_id` | 标识 | 唯一标识 |
 | `barcode` | Barcode | 馆藏条码（值对象），全局唯一 |
 | `title_id` | 标识 | 所属图书标题 |
+| `item_type` | ItemType | 借出物类型。**冗余自题录**（一标题下所有副本同类型），便于罚款计算时免 join，详见 `13-database-design.md` §6.1 |
 | `status` | ItemStatus | 副本状态 |
 | `location` | 字符串 | 存放位置 |
 | `acquired_at` | 日期 | 入库日期 |
@@ -1053,3 +1066,4 @@ amount = min(billed_days × daily_price, max_amount)
 |---|---|---|---|
 | v1.0 | 2026-09-19 | 初版制定。14 个实体、12 个值对象/枚举、3 个领域服务、2 个策略对象。 | Agent 起草 |
 | v1.1 | 2026-09-19 | ① 修正对象计数（v1.0 误写 11 个实体 / 13 个值对象，实际 14 / 12）并补充计数口径说明；② `FineRecord` 补 `operator_role` 字段，与 `13-database-design.md` §4.9 同步；③ 补充预约交接与取消规则（BR-024a / 025a / 025b）。 | Agent 自检后修订 |
+| v1.2 | 2026-09-19 | ① §4.2 `LibraryItem` 属性表补 `item_type`（原表漏列，13 §6.1 已说明为受控冗余）；② §1.3 新增「审计字段约定」，说明各实体属性表仅列业务字段，统一审计字段集中定义。 | Agent 修订 |
