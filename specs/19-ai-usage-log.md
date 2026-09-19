@@ -597,7 +597,7 @@ WorkBuddy（CodeBuddy Agent）
 ### Git 提交
 
 `bccf1fa` docs: add self-audit findings to review checklist v1.1
-`<本条提交>` docs: fix self-audit findings and add reservation rules
+`3a32c30` docs: fix self-audit findings and add reservation rules
 
 ---
 
