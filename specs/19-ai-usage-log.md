@@ -318,22 +318,69 @@ WorkBuddy（CodeBuddy Agent）
 
 ---
 
+## 第 7 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+规格建模 / 结构建模
+
+### 使用任务
+
+生成领域类图 `specs/06-domain-class-diagram.md`。
+
+### 输入 Prompt 摘要
+
+依据 `05-domain-model.md` 生成 UML 类图，须含继承、组合、关联、依赖四类关系并标注多重性；须覆盖 Reader 继承体系、LibraryItem 继承体系、BorrowCard、Loan、Reservation、BorrowPolicy、FineRule、FineRecord；只修改目标文件。
+
+### Agent 修改文件
+
+- 新建 `specs/06-domain-class-diagram.md`
+- 更新 `worklog.md`
+
+### 输出摘要
+
+生成 **7 张 Mermaid `classDiagram`**，按限界上下文模块分册：读者与账号、借阅证、书目与馆藏、流通、预约、罚款与规则，另加 1 张全局关系总览（11 个实体的跨模块关联与多重性）。
+
+配套内容：
+- UML 记号对照表（泛化/组合/聚合/关联/依赖）
+- 领域对象立体分类表（11 实体 / 13 值对象 / 3 领域服务 / 2 策略对象）
+- 关系汇总表：泛化 5 条、组合 1 条、关联 10 条、依赖 5 条
+- **5 处建模决策说明**：题录/副本为何分离、员工账号为何不继承 Reader、`OVERDUE` 为何保留为派生状态、规则为何用策略对象、金额为何封装为值对象
+- 与实验文档 16 项要求的对照表
+
+### 人工审查结果
+
+⏳ 待用户审查。
+
+### 测试结果
+
+不适用（本阶段为文档，无代码）
+
+### Git 提交
+
+`b3a5511` docs: add domain class diagram
+
+---
+
 ## 使用统计
 
 | 项目 | 数值 |
 |---|---|
-| 累计使用次数 | 6 次 |
-| 已生成规格文档 | 7 份（`00`、`01`、`constitution`、`02`、`03`、`04`、`05`） |
+| 累计使用次数 | 7 次 |
+| 已生成规格文档 | 8 份（`00`、`01`、`constitution`、`02`、`03`、`04`、`05`、`06`） |
 | 已发现并裁定规格冲突 | 5 处 |
 | 已补充缺失决策条目 | 11 条 |
-| Git 提交次数 | 4 次 |
+| Git 提交次数 | 6 次 |
 | 代码任务 | 0（实验一不含代码） |
 
 ---
 
 ## 后续待记录
 
-- 步骤 12：领域类图 `06-domain-class-diagram.md`（Mermaid）
 - 步骤 13：架构设计 `07-architecture.md`
 - 步骤 14：包图 `08-package-diagram.md`（Mermaid）
 - 步骤 15：数据库设计 `13-database-design.md`
