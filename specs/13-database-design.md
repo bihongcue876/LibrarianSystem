@@ -1,7 +1,7 @@
 # 数据库设计（Database Design）
 
 > **文档编号**：`specs/13-database-design.md`
-> **制定依据**：`05-domain-model.md`、`07-architecture.md`、`01-clarifying-questions.md`（D-47 ~ D-50）、`02-requirements.md`（BR-001 ~ BR-050）
+> **制定依据**：`05-domain-model.md`、`07-architecture.md`、`01-clarifying-questions.md`（D-47 ~ D-50）、`02-requirements.md`（BR-001 ~ BR-050 及后缀条目）
 > **版本**：v1.0
 > **日期**：2026-09-19
 >
@@ -87,7 +87,7 @@ class MoneyType(TypeDecorator):
 
 | 对象 | 软删除方式 | 字段 |
 |---|---|---|
-| 读者 / 馆员 / 系统管理员 | 标记 | `is_deleted` |
+| 读者 / 图书管理员 / 系统管理员 | 标记 | `is_deleted` |
 | 借阅证 | 状态置 `CANCELLED` | `status`（**不设** `is_deleted`） |
 | 图书标题 | 标记 | `is_deleted` |
 | 馆藏副本 | 状态置 `REMOVED` | `status`（**不设** `is_deleted`） |
@@ -266,7 +266,29 @@ erDiagram
 | 10 | `borrow_policies` | 借阅规则 | `BorrowPolicy` | 5 | 不删 |
 | 11 | `fine_rules` | 罚款规则 | `FineRule` | 5 | 不删 |
 
-**总表数：11 张**，与领域模型的 11 个实体一一对应——**除 `Reader` 继承体系占 3 张表**（`readers` / `librarians` / `system_admins`），因为三者无继承关系（见 `08-package-diagram.md` §5 与 `06-domain-class-diagram.md` §10.2）。
+**总表数：11 张** = **9 张实体表** + **2 张规则表**。表与领域对象的对应关系如下（领域模型共 14 个实体类 + 2 个策略对象）：
+
+| 表 | 承载的领域对象 | 说明 |
+|---|---|---|
+| `readers` | `Reader`、`StudentReader`、`TeacherReader` | **单表继承**，`reader_type` 判别，3 类合 1 张 |
+| `librarians` | `Librarian` | 独立表（不继承 `Reader`） |
+| `system_admins` | `SystemAdmin` | 独立表（不继承 `Reader`） |
+| `borrow_cards` | `BorrowCard` | 1:1 |
+| `book_titles` | `BookTitle` | 1:1 |
+| `library_items` | `LibraryItem`、`Book`、`Magazine`、`Thesis` | **单表继承**，`item_type` 判别，4 类合 1 张 |
+| `loans` | `Loan` | 1:1 |
+| `reservations` | `Reservation` | 1:1 |
+| `fine_records` | `FineRecord` | 1:1 |
+| `borrow_policies` | `BorrowPolicy`（策略对象） | 规则表，每读者类型 1 行 |
+| `fine_rules` | `FineRule`（策略对象） | 规则表，每借出物类型 1 行 |
+
+**数量核算**：
+
+- **14 个实体类 → 9 张实体表**。压缩来自两处单表继承：`readers` 合并 3 个类（省 2 张）、`library_items` 合并 4 个类（省 3 张），共省 5 张（14 − 5 = 9）。
+- **2 个策略对象 → 2 张规则表**。
+- 合计 **9 + 2 = 11 张**。
+
+> **易混淆点**：`Reader` 与 `Librarian`/`SystemAdmin` 在领域模型中**没有继承关系**（见 `06-domain-class-diagram.md` §10.2），因此不共用表——这 3 张表是平级的，不是从某个基类拆出来的。
 
 ---
 
@@ -345,7 +367,7 @@ CHECK (
 - 系统管理员之间**不可互相删除**（BR-043）——此约束在**应用层**实现（需检查"至少保留一个可用管理员"），不建数据库约束。
 - 软删除后不可登录，但历史留痕中其 ID 仍可追溯。
 
-**为什么三类账号的用户名不跨表唯一**：`readers`、`librarians`、`system_admins` 三表的 `username` 各自 `UNIQUE`，但**跨表允许重名**。这是 BR-044（一名自然人每个角色最多一个账号）的自然结果——同一个自然人可以同时是读者和馆员，各持一个同名账号。登录时按角色入口区分（读者端 / 管理端）。
+**为什么三类账号的用户名不跨表唯一**：`readers`、`librarians`、`system_admins` 三表的 `username` 各自 `UNIQUE`，但**跨表允许重名**。这是 BR-044（一名自然人每个角色最多一个账号）的自然结果——同一个自然人可以同时是读者和图书管理员，各持一个同名账号。登录时按角色入口区分（读者端 / 管理端）。
 
 ---
 
@@ -613,7 +635,7 @@ ORDER BY created_at ASC, reservation_id ASC;
 | `status` | VARCHAR(20) | NOT NULL, CHECK | `UNPAID` / `PAID` |
 | `created_at` | DATETIME | NOT NULL | 产生时刻（UTC） |
 | `paid_at` | DATETIME | NULL | 缴纳时刻（UTC） |
-| `operator_id` | INTEGER | **NULL**, FK | 收缴经办人；馆员与管理员共用此列，见下 |
+| `operator_id` | INTEGER | **NULL**, FK | 收缴经办人；图书管理员与管理员共用此列，见下 |
 
 **CHECK 约束**：
 
@@ -753,7 +775,7 @@ amount      = min(billed_days × daily_price, max_amount)
 |---|---|---|---|
 | `idx_loans_reader_status` | `loans` | `reader_id, status` | 额度占用计算（BR-007）、读者查自己的借阅（UC-004） |
 | `idx_loans_item_status` | `loans` | `item_id, status` | 还书时按条码查未归还记录（UC-102） |
-| `idx_loans_overdue` | `loans` | `status, due_at` | 登录时查超期提醒（UC-008）、馆员查超期 |
+| `idx_loans_overdue` | `loans` | `status, due_at` | 登录时查超期提醒（UC-008）、图书管理员查超期 |
 | `idx_reservations_title_status_created` | `reservations` | `title_id, status, created_at` | 取队列与队首（BR-021） |
 | `idx_reservations_reader_status` | `reservations` | `reader_id, status` | 额度占用计算、读者查自己的预约 |
 | `idx_fine_records_reader_status` | `fine_records` | `reader_id, status` | 未缴罚款校验（BR-011）、读者查罚款 |
@@ -851,14 +873,34 @@ amount      = min(billed_days × daily_price, max_amount)
 
 **系统管理员必须先于其他数据创建**，因为 `borrow_cards.issued_by`、`book_titles.created_by` 等字段引用 `system_admins.admin_id`。
 
+### 7.1 首个系统管理员的密码处理
+
+**决策**：密码通过**命令行参数**传入，**脚本内不设默认值**。
+
+```bash
+python scripts/init_db.py --admin-username admin --admin-password '<密码>'
+```
+
+| 规则 | 说明 |
+|---|---|
+| 参数缺失 | 脚本**报错退出**，不生成任何数据 |
+| 无默认密码 | 脚本内**不得**出现 `DEFAULT_PASSWORD`、`"admin123"` 之类的字面量 |
+| 不写日志 | 密码不得出现在日志、标准输出的回显中 |
+| 存储 | 经 bcrypt 哈希后写入 `password_hash`（BR-045） |
+| 幂等性 | 管理员已存在时跳过创建，**不覆盖**已有密码 |
+
+**为什么不给默认值**：默认密码会随 Git 提交进入仓库历史。即使后续修改代码，历史提交中的凭据仍然可被检索——这类泄露无法通过"事后删除"挽回。
+
+**`.gitignore` 必须包含**：`.env`、`*.db`、`__pycache__/`、`.pytest_cache/`。
+
 ---
 
 ## 8. 与领域模型、架构的对照
 
 | 项 | 来源 | 落库情况 |
 |---|---|---|
-| 11 个领域实体 | `05-domain-model.md` §1.2 | ✅ 11 张表（`Reader` 体系占 3 张） |
-| 13 个值对象/枚举 | `05-domain-model.md` §1.2 | ✅ 值对象内联为列，枚举用 VARCHAR + CHECK |
+| 14 个领域实体 | `05-domain-model.md` §1.2 | ✅ 11 张表（两处单表继承压缩 5 张 + 2 张规则表） |
+| 12 个值对象/枚举 | `05-domain-model.md` §1.2 | ✅ 值对象内联为列，枚举用 VARCHAR + CHECK |
 | `Money` 用 Decimal | `05-domain-model.md` §7.2、Q-04 | ✅ `MoneyType` 底层 TEXT |
 | `due_at` 快照 | BR-050 | ✅ 借出时写入，无更新路径 |
 | `unit_price` 快照 | BR-050 | ✅ 罚款生成时写入 |
@@ -894,7 +936,7 @@ amount      = min(billed_days × daily_price, max_amount)
 |---|---|---|
 | 证号撞号 | 两个管理员同时办证 | `card_no` UNIQUE 约束拒绝，后者失败重试 |
 | 队列超员 | 两个读者同时预约第 5 个位置 | 应用层在同一事务内 `COUNT` + `INSERT`；SQLite 写串行化保证串行 |
-| 副本重复借出 | 两馆员同时为同一副本办借书 | `library_items.status` 条件更新 + UNIQUE 约束兜底 |
+| 副本重复借出 | 两图书管理员同时为同一副本办借书 | `library_items.status` 条件更新 + UNIQUE 约束兜底 |
 
 **ADR-03 明确预留的扩展位**：若后续迁移到 PostgreSQL 且存在真实并发，需为 `library_items`、`loans`、`reservations` 增加 `version INTEGER NOT NULL DEFAULT 0` 字段实现乐观锁。当前**不建**该字段。
 
@@ -921,7 +963,7 @@ amount      = min(billed_days × daily_price, max_amount)
 
 | 审查项 | 自查结果 |
 |---|---|
-| 表数与领域实体是否对应？ | ✅ 11 张表 ↔ 11 个实体；`Reader` 体系占 3 张（因无继承关系） |
+| 表数与领域实体是否对应？ | ✅ 14 个实体类 → 9 张实体表 + 2 张规则表 = 11 张；§3 给出逐表承载清单与数量核算 |
 | 继承关系映射是否合理？ | ✅ §6.1 给出单表继承的适用条件与代价，论证子类差异极小 |
 | 主键、外键是否完整？ | ✅ §4 各表逐项标注；`fine_records.operator_id` 例外已说明理由（§4.9） |
 | 软删除与唯一约束是否冲突？ | ✅ §4.5 详细论证 ISBN 用部分唯一、用户名用全局唯一，并给出语义区分表 |
@@ -940,3 +982,4 @@ amount      = min(billed_days × daily_price, max_amount)
 | 版本 | 日期 | 变更内容 | 变更人 |
 |---|---|---|---|
 | v1.0 | 2026-09-19 | 初版制定。11 张表完整关系模式、20 个索引（含 3 个部分唯一索引）、单表继承映射策略、金额精度方案（`MoneyType`）、软删除与唯一约束冲突处理、种子数据。 | Agent 起草 |
+| v1.1 | 2026-09-19 | ① §3 重写「表 ↔ 领域对象」对应关系（14 个实体类 → 9 张实体表 + 2 张规则表 = 11 张），补数量核算；② §7.1 新增「首个系统管理员的密码处理」——命令行参数传入、无默认值；③ 术语统一为「图书管理员」。 | Agent 自检后修订 |

@@ -425,7 +425,7 @@ def list_my_loans(current: Account = Depends(require_role(Role.READER))): ...
 
 **权限矩阵**（以 `01-clarifying-questions.md` D-05 为准）：
 
-| 功能域 | 读者 READER | 馆员 LIBRARIAN | 管理员 ADMIN |
+| 功能域 | 读者 READER | 图书管理员 LIBRARIAN | 管理员 ADMIN |
 |---|:---:|:---:|:---:|
 | 查询自己的借阅/预约/罚款 | ✅ | — | — |
 | 查询任意读者信息 | ❌ | ✅ | ✅ |
@@ -523,7 +523,7 @@ async def get_circulation_service(session = Depends(get_session)) -> Circulation
 
 1. 实验要求的审计粒度是"谁办了这笔借书/收了这笔罚款"，业务字段已完全覆盖
 2. 独立审计表需要 AOP 或事件机制，与本项目"教学可解释"目标冲突
-3. 业务字段可被查询接口直接使用（如"查询该馆员经办的借阅"），审计表则需额外关联
+3. 业务字段可被查询接口直接使用（如"查询该图书管理员经办的借阅"），审计表则需额外关联
 
 **日志级别约定**：
 
@@ -600,9 +600,16 @@ async def get_circulation_service(session = Depends(get_session)) -> Circulation
 1. 读取环境变量配置
 2. 建表（SQLAlchemy `create_all`）
 3. 执行初始化脚本：写入初始借阅规则、初始罚款规则、**首个系统管理员账号**
+
+```bash
+python scripts/init_db.py --admin-username admin --admin-password '<密码>'
+```
+
 4. 启动 uvicorn
 
 **初始化脚本的必要性**：决策 D-04 规定系统管理员**只能通过初始化脚本创建，不提供在线创建接口**。故该脚本是系统可用的前置条件。
+
+**初始化密码的处理**（详见 `13-database-design.md` §7.1）：密码通过**命令行参数**传入，脚本内**不设默认值**。缺失则报错退出。理由：默认密码会随 Git 提交进入仓库历史，事后删除代码也无法消除历史中的凭据。
 
 ---
 
@@ -734,7 +741,7 @@ expr_proj/
 | 步骤 | 层 | 组件 |
 |---|---|---|
 | 接收请求、校验参数格式 | 表现层 | `circulation_router.borrow_book()`、`BorrowBookRequest` |
-| 校验角色为馆员 | 表现层 | `require_role(Role.LIBRARIAN)` |
+| 校验角色为图书管理员 | 表现层 | `require_role(Role.LIBRARIAN)` |
 | 开启事务 | 应用层 | `CirculationService.borrow_book()` |
 | 加载借阅证、读者、借阅、预约、罚款、副本、规则 | 应用层 + 基础设施 | Repository |
 | **资格判定（6 步固定顺序）** | **领域层** | `BorrowEligibilityService.check_eligibility()` |

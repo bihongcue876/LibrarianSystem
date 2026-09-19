@@ -67,7 +67,9 @@
 | **策略对象** | `BorrowPolicy` | policy |
 | **策略对象** | `FineRule` | policy |
 
-**对象总数**：11 个实体、13 个值对象/枚举、3 个领域服务、2 个策略对象。
+**对象总数**：14 个实体、12 个值对象/枚举、3 个领域服务、2 个策略对象。
+
+> **计数口径**：实体数含抽象基类（`Reader`、`LibraryItem`）与其全部具体子类（`StudentReader`、`TeacherReader`、`Book`、`Magazine`、`Thesis`）。
 
 ---
 
@@ -695,6 +697,9 @@
 - 仅在标题下所有副本均不可借时才可预约（BR-020）。
 - 有效期 7 天：`ACTIVE` 自 `created_at` 起算，`READY` 自 `ready_at` 起算（BR-025）。
 - 有效预约占用 1 个借阅额度，取消或失效后释放（BR-026）。
+- **`RESERVED` 副本的归属始终跟随队列头部的有效预约**：队首失效或取消时，副本转交下一位（对方 `ACTIVE` → `READY`，副本仍为 `RESERVED`）；队列无有效预约时才释放为 `AVAILABLE`（BR-024a）。
+- **有效预约（`ACTIVE` 或 `READY`）均可由读者主动取消**；取消 `READY` 预约时副本按上述规则转交（BR-025a）。
+- 预约超期采用**惰性判定**（查询或操作时计算）。但判定出超期后，**必须在同一次操作内**完成队列顺延与副本交接，不得遗留无人接管的 `RESERVED` 副本（BR-025b）。
 
 **关系**：
 
@@ -786,6 +791,7 @@
 | `created_at` | 时间戳 | 产生时刻 |
 | `paid_at` | 时间戳 | 缴纳时刻（可空） |
 | `operator_id` | 标识 | 收缴经办人（可空） |
+| `operator_role` | 枚举 | 收缴人角色（`LIBRARIAN` / `ADMIN`，可空）。因收缴人可能来自 `librarians` 或 `system_admins` 两张表，需以角色标识消歧 |
 
 **关键行为**：
 
@@ -984,11 +990,11 @@ amount = min(billed_days × daily_price, max_amount)
 | `BookTitle` | `LibraryItem` | 1 — 0..* | 一个标题有零到多个副本（组合） |
 | `LibraryItem` | `Loan` | 1 — 0..* | 一个副本有多条历史借阅记录 |
 | `Loan` | `FineRecord` | 1 — 0..1 | 一条借阅记录最多产生一条罚款 |
-| `Loan` | `Librarian` | * — 1 | 每条借阅记录由一名馆员经办 |
+| `Loan` | `Librarian` | * — 1 | 每条借阅记录由一名图书管理员经办 |
 | `Reservation` | `BookTitle` | * — 1 | 预约针对标题 |
 | `BookTitle` | `Reservation` | 1 — 0..* | 一个标题有多条预约（队列） |
 | `BorrowCard` | `SystemAdmin` | * — 1 | 借阅证由系统管理员签发 |
-| `FineRecord` | `Librarian` / `SystemAdmin` | * — 1 | 罚款由馆员或管理员收缴 |
+| `FineRecord` | `Librarian` / `SystemAdmin` | * — 1 | 罚款由图书管理员或管理员收缴 |
 
 ### 9.3 依赖关系（领域服务与策略）
 
@@ -1004,7 +1010,7 @@ amount = min(billed_days × daily_price, max_amount)
 
 ## 10. 关键领域规则摘要
 
-> 完整的业务规则见 `02-requirements.md` 第 3 节（BR-001 ~ BR-050）。此处摘录与领域模型直接相关的核心规则。
+> 完整的业务规则见 `02-requirements.md` 第 3 节（BR-001 ~ BR-050 及后缀条目 BR-024a/025a/025b）。此处摘录与领域模型直接相关的核心规则。
 
 | 规则 | 内容 | 承载对象 |
 |---|---|---|
@@ -1016,6 +1022,8 @@ amount = min(billed_days × daily_price, max_amount)
 | 可预约条件 | 该标题所有副本均不可借 | `BookTitle.can_be_reserved()` |
 | 预约队列 | 按 `created_at` 升序，上限 5 人 | `ReservationQueueService` |
 | 预约预留 | 还书时队首预约置 `READY`，副本置 `RESERVED` | `LibraryItem.mark_returned()` |
+| 预约交接 | 队首失效或取消时，`RESERVED` 副本转交下一位（对方 `ACTIVE` → `READY`）；队列无有效预约才释放为 `AVAILABLE` | `ReservationQueueService` |
+| 预约取消 | `ACTIVE` 与 `READY` 状态均可由读者主动取消；取消 `READY` 时副本按上一条交接 | `Reservation.cancel()` |
 | 罚款计算 | `min(max(逾期天数-宽限期,0) × 单价, 封顶)` | `FineRule.calculate_fine()` |
 | 罚款封顶 | 单笔 100 元 | `FineRule` |
 | 软删除 | 全部删除为软删除，仅系统管理员可见 | 各实体的 `is_deleted` / `REMOVED` |
@@ -1043,4 +1051,5 @@ amount = min(billed_days × daily_price, max_amount)
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |---|---|---|---|
-| v1.0 | 2026-09-19 | 初版制定。11 个实体、13 个值对象/枚举、3 个领域服务、2 个策略对象。 | Agent 起草 |
+| v1.0 | 2026-09-19 | 初版制定。14 个实体、12 个值对象/枚举、3 个领域服务、2 个策略对象。 | Agent 起草 |
+| v1.1 | 2026-09-19 | ① 修正对象计数（v1.0 误写 11 个实体 / 13 个值对象，实际 14 / 12）并补充计数口径说明；② `FineRecord` 补 `operator_role` 字段，与 `13-database-design.md` §4.9 同步；③ 补充预约交接与取消规则（BR-024a / 025a / 025b）。 | Agent 自检后修订 |
