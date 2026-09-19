@@ -525,7 +525,7 @@ WorkBuddy（CodeBuddy Agent）
 
 ### Git 提交
 
-`<待提交>` docs: add database design, risk analysis and review checklist
+`f12b5e9` docs: add database design, risk analysis and review checklist
 
 ---
 
