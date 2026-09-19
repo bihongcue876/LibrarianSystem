@@ -56,6 +56,7 @@ Agent 梳理出实验一的 14 项交付物清单（确认**不含代码**），
 ### Git 提交
 
 `3f3614a` chore: init project structure and add project brief
+`2dbfa1d` docs: add requirements specification
 
 ---
 
@@ -150,7 +151,8 @@ WorkBuddy（CodeBuddy Agent）
 
 ### Git 提交
 
-未提交（该文件在后续步骤中继续增补）
+`bb6e6fc` docs: add use case texts and use case model
+`ff148db` docs: add domain model
 
 ---
 
@@ -263,29 +265,78 @@ Agent 依据用户决策补充的 5 条：数据一致性与事务边界、规�
 
 ---
 
+## 第 6 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+规格建模 / 领域建模
+
+### 使用任务
+
+批量生成实验一核心规格文档：需求规格、用例文本、用例图、领域模型。
+
+### 输入 Prompt 摘要
+
+用户授权"像上次一样一直问我，然后一起构建"，并认可 Agent 提出的交互式推进方式；随后明确"可以先直接写吧，前面估计也清楚了"，授权 Agent 直接生成领域模型。
+
+### Agent 修改文件
+
+- 新建 `specs/02-requirements.md`
+- 新建 `specs/03-use-cases.md`
+- 新建 `specs/04-use-case-model.md`
+- 新建 `specs/05-domain-model.md`
+
+### 输出摘要
+
+**① 需求规格 `02-requirements.md`**：29 条 FR（8 模块）、50 条 BR（10 类）、14 条 NFR，含需求追溯矩阵（FR → UC → TC）。每条 FR 均附可验证的验收标准（含错误码与 HTTP 状态码）。
+
+**② 用例文本 `03-use-cases.md`**：31 个用例，每例 10 个字段。重点详述实验文档点名的 5 个用例：UC-101 办理借书（两阶段 14 步、7 备选流 + 3 异常流）、UC-102 办理还书、UC-102a 计算超期罚款（含 7 行金额示例表）、UC-005 预约图书、UC-201 办理借阅证。
+
+**③ 用例图 `04-use-case-model.md`**：5 张 Mermaid 图 + 关系说明 + 实验文档 12 项要求对照表。
+
+**④ 领域模型 `05-domain-model.md`**：7 个限界上下文模块；11 个实体、13 个值对象/枚举、3 个领域服务、2 个策略对象；3 个状态机；含 8 项审查重点自查表。
+
+### 人工审查结果
+
+过程中通过 4 轮卡片问答确认 14 项决策，其中影响较大的：预约直接锁定 `RESERVED`、续借不额外占额度、注销证支持恢复、系统管理员不可互删、借阅规则与罚款规则均可在线维护、到期提醒改为登录时集中提醒一次。
+
+用户对 FR 数量（29 条，超出实验文档要求的 16 条）与续借功能扩展表示认可，理由为"体现策略模式 + 真实图书馆普遍支持"。
+
+### 测试结果
+
+不适用（本阶段为文档，无代码）
+
+### Git 提交
+
+`2dbfa1d` docs: add requirements specification
+`bb6e6fc` docs: add use case texts and use case model
+`ff148db` docs: add domain model
+
+---
+
 ## 使用统计
 
 | 项目 | 数值 |
 |---|---|
-| 累计使用次数 | 5 次 |
-| 已生成规格文档 | 3 份（`00`、`01`、`constitution`） |
+| 累计使用次数 | 6 次 |
+| 已生成规格文档 | 7 份（`00`、`01`、`constitution`、`02`、`03`、`04`、`05`） |
 | 已发现并裁定规格冲突 | 5 处 |
 | 已补充缺失决策条目 | 11 条 |
-| Git 提交次数 | 1 次 |
+| Git 提交次数 | 4 次 |
 | 代码任务 | 0（实验一不含代码） |
 
 ---
 
 ## 后续待记录
 
-- 步骤 7：需求规格 `02-requirements.md`
-- 步骤 8：用例文本 `03-use-cases.md`
-- 步骤 9：用例图 `04-use-case-model.md`（Mermaid）
-- 步骤 10：领域模型 `05-domain-model.md`
-- 步骤 11：领域类图 `06-domain-class-diagram.md`（Mermaid）
-- 步骤 12：架构设计 `07-architecture.md`
-- 步骤 13：包图 `08-package-diagram.md`（Mermaid）
-- 步骤 14：数据库设计 `13-database-design.md`
-- 步骤 15：风险分析与审查清单 `17` / `18`
-- 步骤 16：人工审查与修订
-- 步骤 17：冻结实验一 Baseline
+- 步骤 12：领域类图 `06-domain-class-diagram.md`（Mermaid）
+- 步骤 13：架构设计 `07-architecture.md`
+- 步骤 14：包图 `08-package-diagram.md`（Mermaid）
+- 步骤 15：数据库设计 `13-database-design.md`
+- 步骤 16：风险分析与审查清单 `17` / `18`
+- 步骤 17：人工审查与修订
+- 步骤 18：冻结实验一 Baseline

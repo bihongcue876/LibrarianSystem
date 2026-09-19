@@ -42,10 +42,8 @@
 | 8 | 生成需求规格（29 FR / 50 BR / 14 NFR） | 实验一 · Elaboration | `02-requirements.md` | ⏳ 待审查 |
 | 9 | 生成用例文本（31 个用例） | 实验一 · Elaboration | `03-use-cases.md` | ⏳ 待审查 |
 | 10 | 生成用例图（5 张 Mermaid 图） | 实验一 · Elaboration | `04-use-case-model.md` | ⏳ 待审查 |
-| 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⬜ 下一步 |
-| 10 | 生成用例图 | 实验一 · Elaboration | `04-use-case-model.md` | ⬜ 待办 |
-| 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⬜ 待办 |
-| 12 | 生成领域类图 | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⬜ 待办 |
+| 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⏳ 待审查 |
+| 12 | 生成领域类图 | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⬜ 下一步 |
 | 13 | 生成架构设计 | 实验一 · Elaboration | `07-architecture.md` | ⬜ 待办 |
 | 14 | 生成包图 | 实验一 · Elaboration | `08-package-diagram.md` | ⬜ 待办 |
 | 15 | 生成数据库设计 | 实验一 · Elaboration | `13-database-design.md` | ⬜ 待办 |
@@ -368,11 +366,40 @@
 
 ---
 
-### 步骤 11：生成领域模型 05-domain-model.md（下一步）
+### 步骤 11：生成领域模型 05-domain-model.md
+
+- **时间**：2026-09-19 18:00 - 18:12
+- **阶段**：实验一 · Elaboration（细化阶段）
+- **触发**：实验流程要求（实验一第十二节步骤 8）+ 用户指令"可以先直接写吧，前面估计也清楚了"
+- **操作**：
+  1. 依据 `02-requirements.md` 与 `03-use-cases.md`，结合 `01-clarifying-questions.md` 的 71 条决策，生成 `specs/05-domain-model.md`。
+  2. 文档结构 12 章节，按 **7 个限界上下文模块** 组织：读者（reader）、借阅证（card）、书目（catalog）、流通（circulation）、预约（reservation）、罚款（fine）、规则（policy）。
+  3. 模型元素统计：
+     - **11 个实体**：`Reader`（抽象）、`StudentReader`、`TeacherReader`、`Librarian`、`SystemAdmin`、`BorrowCard`、`BookTitle`、`LibraryItem`（抽象）、`Book`/`Magazine`/`Thesis`（3 个具体子类）、`Loan`、`Reservation`、`FineRecord`
+     - **13 个值对象 / 枚举**：`CardNumber`、`Barcode`、`Isbn`、`ReaderType`、`ItemType`、`ItemStatus`、`CardStatus`、`LoanStatus`、`ReservationStatus`、`FineStatus`、`Money`、`DateRange`
+     - **3 个领域服务**：`BorrowEligibilityService`、`RenewalService`、`ReservationQueueService`
+     - **2 个策略对象**：`BorrowPolicy`、`FineRule`
+  4. 为 `BorrowCard`、`Loan`、`Reservation` 三个生命周期对象绘制**状态机**。
+  5. §8 规则模块给出 `BorrowPolicy`（5 行读者类型数据）与 `FineRule`（5 行罚款单价数据）的完整数据表与计算示例。
+  6. §11「人工审查重点自查」附 8 项对照表，逐项验证实验文档第十二节要求全部覆盖。
+- **产出**：`specs/05-domain-model.md`（新建）
+- **关键决策**：
+  | 项 | 结论 |
+  |---|---|
+  | `Money` 值对象 | 内部用 `Decimal`（`quantize(0.01)`），禁止 float，解决罚款精度问题 |
+  | 规则对象形态 | `BorrowPolicy` / `FineRule` 存库可配（对应 D-47a），非常量 |
+  | `Reader` 继承层次 | 保留抽象 `Reader` 基类，三种具体读者类各自持有额度参数 |
+  | 馆藏继承 | `LibraryItem` 抽象 + `Book`/`Magazine`/`Thesis` 三子类，对应单表继承（D-49） |
+  | 领域服务归属 | 跨实体规则（可借性判定、续借判定、预约队列）抽为领域服务，不放在实体内部 |
+- **状态**：⏳ 待用户审查
+
+---
+
+### 步骤 12：生成领域类图 06-domain-class-diagram.md（下一步）
 
 - **阶段**：实验一 · Elaboration（细化阶段）
-- **触发**：实验流程要求（实验一第十二节步骤 8）
-- **待办**：依据 `02-requirements.md` 与 `03-use-cases.md` 生成 `specs/05-domain-model.md`。
-- **要求**：每个领域类含类名、职责、关键属性、关键行为、约束、关系；必须体现继承关系（Reader/StudentReader/TeacherReader、LibraryItem/Book/Magazine/Thesis）；必须包含 BorrowCard、Loan、Reservation、BorrowPolicy、FineRule、FineRecord；区分实体/值对象/领域服务/策略对象。
+- **触发**：实验流程要求（实验一第十三节步骤 9）
+- **待办**：依据 `05-domain-model.md` 生成 Mermaid 类图，展示 11 个实体 + 值对象 + 领域服务的属性、方法与关系（继承、组合、关联、依赖），并标注多重性。
+- **要求**：必须体现 Reader 继承体系、LibraryItem 继承体系；必须包含 BorrowCard、Loan、Reservation、BorrowPolicy、FineRule、FineRecord；须以 Mermaid `classDiagram` 呈现。
 
 ---
