@@ -44,8 +44,8 @@
 | 10 | 生成用例图（5 张 Mermaid 图） | 实验一 · Elaboration | `04-use-case-model.md` | ⏳ 待审查 |
 | 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⏳ 待审查 |
 | 12 | 生成领域类图（7 张 Mermaid 图） | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⏳ 待审查 |
-| 13 | 生成架构设计 | 实验一 · Elaboration | `07-architecture.md` | ⬜ 待办 |
-| 14 | 生成包图 | 实验一 · Elaboration | `08-package-diagram.md` | ⬜ 待办 |
+| 13 | 生成架构设计（4 层 + 8 条 ADR） | 实验一 · Elaboration | `07-architecture.md` | ⏳ 待审查 |
+| 14 | 生成包图 | 实验一 · Elaboration | `08-package-diagram.md` | ⬜ 下一步 |
 | 15 | 生成数据库设计 | 实验一 · Elaboration | `13-database-design.md` | ⬜ 待办 |
 | 16 | 生成风险分析与审查清单 | 实验一 · Elaboration | `17`、`18` | ⬜ 待办 |
 | 17 | 人工审查与修订 | 实验一 · Elaboration | 修订 specs | ⬜ 待办 |
@@ -430,16 +430,56 @@
 
 ---
 
-### 步骤 13：生成架构设计 07-architecture.md（下一步）
+### 步骤 13：生成架构设计 07-architecture.md
+
+- **时间**：2026-09-19 18:05 - 18:22
+- **阶段**：实验一 · Elaboration（细化阶段）
+- **触发**：实验流程要求（实验一第十四节步骤 10）+ 用户指令"接下来写下一个文件就好"
+- **前置修正**：发现 `constitution.md` 第三条与已确认的 UML 工具选型**不一致**——宪法仍写 PlantUML / `.puml`，而步骤 7 已与用户确认改用 Mermaid / `.md`。已修订宪法第三条并追加 v1.1 修订记录。
+- **操作**：
+  1. 修订 `specs/constitution.md` 第三条（版本 v1.0 → v1.1）。
+  2. 生成 `specs/07-architecture.md`，共 13 节：
+     - §1 架构目标与约束（6 条硬性约束 C-1~C-8 编号化 + 明确不做清单）
+     - §2 四层架构：职责表、禁止清单、依赖方向图、依赖倒置机制
+     - §3 MVC 在 FastAPI 中的映射 + 借书请求的完整流经路径（4 阶段分解）
+     - §4 设计模式使用位置（6 种模式 × 使用位置 × 解决的问题）+ Strategy 正确/错误代码对照
+     - §5 技术选型（含 Python 3.11+ 的理由与 SQLite 的代价分析）
+     - §6 横切关注点 6 类：认证鉴权（含权限矩阵）、异常处理（6 类异常 × HTTP 码）、事务管理、日志与审计、时间处理、CORS 与配置
+     - §7 部署视图与启动流程（含初始化脚本的必要性）
+     - §8 目录结构与分层对应表
+     - §9 四个关键流程的分层落点（借书/还书/预约/规则维护）
+     - §10 **架构决策记录 8 条 ADR**（含替代方案与拒绝理由）
+     - §11 架构与需求追溯矩阵
+     - §12 人工审查重点自查（12 项）
+     - §13 变更记录
+  3. 在 §2.4 提供**可机械验证**的依赖检查项（grep 框架导入、Router 行数上限）。
+- **产出**：
+  - `specs/07-architecture.md`（新建）
+  - `specs/constitution.md`（修订第三条，v1.1）
+- **关键决策**：
+  | 项 | 结论 |
+  |---|---|
+  | Application Service 命名冲突 | 领域层 `RenewalService` 与应用层 `CirculationService.renew()` 职责不同，已在文档中显式提示，数据库设计需区分 |
+  | Repository 接口归属 | 放**应用层** `application/ports/`，非领域层（ADR-02），理由：本领域模型非持久化透明 |
+  | 并发控制 | **不引入**乐观锁版本号，依赖 SQLite 写串行化 + 事务原子性（ADR-03），迁移 PostgreSQL 时再补 |
+  | 审计实现 | **不做**独立审计日志表，操作人以业务字段留存（ADR-04） |
+  | ORM 与领域实体 | **分离**为两套类，用 `mappers/` 转换（ADR-05），代价是维护 11 组 Mapper |
+  | 员工账号基类 | **不抽** `Account` 基类（ADR-08），与类图决策保持一致 |
+  | 事务实现 | 推荐 Unit of Work 上下文管理器（方案 A），边界可见 |
+- **发现的规格不一致**：宪法第三条 UML 工具表述滞后（已修正）；应用层与领域层存在同名 `RenewalService` 风险（已标注）
+- **状态**：⏳ 待用户审查
+
+---
+
+### 步骤 14：生成包图 08-package-diagram.md（下一步）
 
 - **阶段**：实验一 · Elaboration（细化阶段）
-- **触发**：实验流程要求（实验一第十四节步骤 10）
-- **待办**：生成 `specs/07-architecture.md`，内容须包含：
-  1. 分层架构（presentation / application / domain / infrastructure）的职责边界与依赖方向
-  2. MVC 在 FastAPI 中的映射（routers = Controller）
-  3. 技术选型与部署视图
-  4. 横切关注点：认证鉴权、异常处理、日志与审计、事务管理
-  5. 借阅/归还/预约/罚款的业务流程在分层架构中的落点
-  6. 架构决策记录（ADR 形式）
+- **触发**：实验流程要求（实验一第十五节步骤 11）
+- **待办**：生成 `specs/08-package-diagram.md`，以 Mermaid `graph` 或 `classDiagram` 呈现包结构，须体现：
+  1. 四层包划分与依赖方向（presentation → application → domain ← infrastructure）
+  2. 应用层 `ports/` 的接口定义位置与基础设施层实现的反向依赖
+  3. **两套视角的映射**：`05-domain-model.md` 的 7 个限界上下文模块（业务视角）如何对应 `07-architecture.md` §8 的分层目录（技术视角）
+  4. 禁止的反向依赖（用虚线红色标注违规路径）
+  5. 与宪法第五条、第六条的对照表
 
 ---

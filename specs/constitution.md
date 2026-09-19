@@ -36,22 +36,24 @@
 
 **所有 UML 图必须使用文本格式保存并纳入 Git 管理。**
 
-- 强制格式：**PlantUML** 或 **Mermaid**，统一采用 **PlantUML**。
-- 文件扩展名：`.puml`。
-- 必须包含 `@startuml` 与 `@enduml` 边界标记。
+- 强制格式：**Mermaid**（本项目选型，替代实验文档推荐的 PlantUML）。
+- 文件扩展名：`.md`（图以 Mermaid 代码块内嵌于 Markdown 文档中）。
+- 每个 Mermaid 代码块须以 `classDiagram` / `graph` / `sequenceDiagram` 等类型声明开头。
 - **严禁**仅提交图片文件（`.png` / `.jpg` / `.svg` 导出图）作为 UML 交付物。
 - 图文件必须放置于 `specs/` 目录，与其他规格文档同级。
+
+**选型理由**：Mermaid 零依赖（无需 Java + Graphviz 环境），可直接在 Markdown 预览插件中渲染，同样满足"文本格式 + Git 管理"的 UML-as-Spec 要求。
 
 **要求建模的图**：
 
 | 图类型 | 文件 |
 |---|---|
-| 用例图 | `specs/04-use-case-model.puml` |
-| 领域类图 | `specs/06-domain-class-diagram.puml` |
-| 包图 | `specs/08-package-diagram.puml` |
-| 顺序图 · 办理借书 | `specs/10-sequence-borrow-book.puml` |
-| 顺序图 · 办理还书 | `specs/11-sequence-return-book.puml` |
-| 顺序图 · 预约图书 | `specs/12-sequence-reserve-book.puml` |
+| 用例图 | `specs/04-use-case-model.md` |
+| 领域类图 | `specs/06-domain-class-diagram.md` |
+| 包图 | `specs/08-package-diagram.md` |
+| 顺序图 · 办理借书 | `specs/10-sequence-borrow-book.md` |
+| 顺序图 · 办理还书 | `specs/11-sequence-return-book.md` |
+| 顺序图 · 预约图书 | `specs/12-sequence-reserve-book.md` |
 
 ---
 
@@ -292,3 +294,4 @@ def borrow(req: BorrowBookRequest, svc: CirculationService = Depends(get_circula
 | 版本 | 日期 | 修订内容 | 修订人 |
 |---|---|---|---|
 | v1.0 | 2026-09-19 | 初版制定，共 16 条原则 | Agent 起草，人类确认 |
+| v1.1 | 2026-09-19 | 第三条 UML 工具由 PlantUML/`.puml` 改为 Mermaid/`.md`，并补充选型理由 | Agent 修订，人类确认 |
