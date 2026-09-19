@@ -1,0 +1,10 @@
+.workbuddy
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.db
+*.sqlite3
+.env
+docs_expr_description
