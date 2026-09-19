@@ -366,22 +366,76 @@ WorkBuddy（CodeBuddy Agent）
 
 ---
 
+## 第 8 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+架构设计 / 规格一致性复核
+
+### 使用任务
+
+生成架构设计 `specs/07-architecture.md`，并复核既有规格的一致性。
+
+### 输入 Prompt 摘要
+
+用户确认领域类图的建模决策"可行、合理"，指令"接下来写下一个文件就好"，授权直接生成架构设计文档。
+
+### Agent 修改文件
+
+- 新建 `specs/07-architecture.md`
+- 修订 `specs/constitution.md`（第三条，v1.0 → v1.1）
+- 更新 `worklog.md`
+
+### 输出摘要
+
+**① 架构设计 `07-architecture.md`**：13 节内容，含
+- 四层架构（`presentation` / `application` / `domain` / `infrastructure`）的职责、禁止清单与依赖方向，配依赖倒置机制说明
+- MVC 在 FastAPI 中的映射，附「办理借书」请求的 4 阶段完整流经路径
+- 6 种设计模式（Strategy / Repository / Service Layer / DTO / Factory / MVC）的使用位置表，含 Strategy 正确与错误的代码对照
+- 6 类横切关注点：认证鉴权（含完整权限矩阵）、异常处理（6 类异常 → HTTP 状态码）、事务管理、日志与审计、时间处理、CORS 与配置
+- 部署视图、启动流程、目录结构（含层对应表）
+- 4 个关键流程（借书/还书/预约/规则维护）的分层落点分解
+- **8 条架构决策记录（ADR）**，每条含替代方案与拒绝理由
+- 需求追溯矩阵与 12 项人工审查重点自查
+
+**② 规格一致性修正**：复核时发现 `constitution.md` 第三条仍写 PlantUML / `.puml`，与步骤 7 已与用户确认的 Mermaid / `.md` 选型**不一致**。已修订该条并追加 v1.1 修订记录。
+
+同时识别出一处**命名冲突风险**并在文档中标注：领域层的 `RenewalService`（领域服务，判定"能否续借"）与应用层的 `CirculationService.renew()`（应用方法，负责取数据 + 落库 + 提交事务）职责不同，数据库设计阶段需注意区分。
+
+### 人工审查结果
+
+⏳ 待用户审查。用户已先行确认领域类图中的建模决策（`BookTitle`/`LibraryItem` 分离、员工账号不继承 `Reader`）"可行、合理"。
+
+### 测试结果
+
+不适用（本阶段为文档，无代码）
+
+### Git 提交
+
+`eb4b497` docs: add architecture design and fix constitution UML tooling
+
+---
+
 ## 使用统计
 
 | 项目 | 数值 |
 |---|---|
-| 累计使用次数 | 7 次 |
-| 已生成规格文档 | 8 份（`00`、`01`、`constitution`、`02`、`03`、`04`、`05`、`06`） |
+| 累计使用次数 | 8 次 |
+| 已生成规格文档 | 9 份（`00`、`01`、`constitution`、`02`、`03`、`04`、`05`、`06`、`07`） |
 | 已发现并裁定规格冲突 | 5 处 |
+| 已发现并修正的规格不一致 | 1 处（宪法第三条 UML 工具滞后） |
 | 已补充缺失决策条目 | 11 条 |
-| Git 提交次数 | 6 次 |
+| Git 提交次数 | 7 次 |
 | 代码任务 | 0（实验一不含代码） |
 
 ---
 
 ## 后续待记录
 
-- 步骤 13：架构设计 `07-architecture.md`
 - 步骤 14：包图 `08-package-diagram.md`（Mermaid）
 - 步骤 15：数据库设计 `13-database-design.md`
 - 步骤 16：风险分析与审查清单 `17` / `18`
