@@ -23,6 +23,9 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# 把 backend/ 加入 sys.path，使 `import app` / `import scripts` 与工作目录无关。
+# 没有这一行时，从仓库根目录运行会报 ModuleNotFoundError: No module named 'app'。
+pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

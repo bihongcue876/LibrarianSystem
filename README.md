@@ -121,10 +121,13 @@ expr_proj/
 │   │   ├── conftest.py          # 共享夹具
 │   │   ├── unit/                # 领域层单测（不依赖 DB 与 Web 框架）
 │   │   └── integration/         # API 端到端 + 分层约束校验
-│   ├── pyproject.toml           # 依赖清单（uv）
+│   ├── pyproject.toml           # 依赖清单 + pytest/ruff 配置（uv）
 │   ├── uv.lock                  # 锁文件（提交 Git）
 │   └── .python-version          # 3.14
 ├── frontend/                    # 前端（本期未实现，包管理约定为 pnpm）
+├── .vscode/                     # VS Code 配置（解释器、测试发现、推荐扩展）
+├── pytest.ini                   # 根目录 pytest 入口（使仓库根可直接跑测试）
+├── run-tests.ps1                # 一键测试脚本（自动定位环境 / 回退）
 ├── worklog.md                   # Agent 行为时序记录
 └── README.md
 ```
@@ -185,28 +188,97 @@ uv run uvicorn app.main:app --reload --port 8000
 
 ## 6. 测试方式
 
-```bash
+pytest 已随 `uv sync` 装进虚拟环境（**pytest 9.1.1**，位于 `backend/.venv`），**无需额外安装**。
+
+### 6.1 三种运行入口
+
+| 入口 | 命令 | 说明 |
+|---|---|---|
+| 一键脚本（推荐） | `.\run-tests.ps1` | 自动定位环境；无环境时自动 `uv sync`；机器上没有 uv 会回退到 venv 的 python |
+| 仓库根目录 | `uv run --project backend pytest -q` | 根目录 `pytest.ini` 已把 `backend/` 加入 `sys.path` |
+| backend 目录 | `cd backend` → `uv run pytest -q` | 用 `backend/pyproject.toml` 里的 pytest 配置 |
+
+> **为什么需要根目录的 `pytest.ini`**：pytest 只从当前目录**向上**找配置文件，不会向下找。
+> 在仓库根目录直接运行时会找不到 `backend/pyproject.toml`，于是 `import app` 报
+> `ModuleNotFoundError`。根目录这份配置只负责「找到测试」+「让 `app` 可导入」，
+> 其余配置的唯一来源仍是 `backend/pyproject.toml`。
+
+**不用 uv 也可以**（虚拟环境已建好的前提下）：
+
+```powershell
+# 方式一：直接调 venv 里的 pytest（无需激活）
+.\backend\.venv\Scripts\pytest.exe -q
+
+# 方式二：激活虚拟环境后用裸命令
 cd backend
-
-# 全量测试
-uv run pytest -q
-
-# 仅领域层单元测试（不连数据库）
-uv run pytest tests/unit -q
-
-# 分层与架构约束校验
-uv run pytest tests/integration/test_layering.py -q
-
-# 查看详细输出
-uv run pytest -v
+.\.venv\Scripts\Activate.ps1      # PowerShell
+pytest -q
 ```
 
-**测试分层**：
+### 6.2 一键脚本用法
 
-- `tests/unit/` —— 领域层，**不依赖数据库与 Web 框架**（有测试守护这条约束）
-- `tests/integration/` —— API 端到端，使用独立内存 SQLite 库，测试之间互不影响
+```powershell
+.\run-tests.ps1                              # 全部测试
+.\run-tests.ps1 -Scope unit                  # 仅领域层单元测试
+.\run-tests.ps1 -Scope integration           # 仅 API 端到端测试
+.\run-tests.ps1 -Scope layering              # 仅架构约束校验
+.\run-tests.ps1 -Scope unit -Keyword money   # 按名称筛选（等价 pytest -k）
+.\run-tests.ps1 -NoUv                        # 强制不用 uv
+```
 
-**当前状态**：**376 passed**，连续两次运行结果一致。
+> 脚本刻意**只用 ASCII 输出**：Windows PowerShell 5.1 在中文系统上按 GBK 解析 `.ps1`，
+> 无 BOM 的 UTF-8 中文字符串会乱码，甚至破坏字符串终止符导致脚本无法解析。
+
+### 6.3 常用 pytest 用法
+
+```bash
+# 单个文件
+uv run pytest tests/integration/test_borrow.py -q
+
+# 单个类 / 单个用例
+uv run pytest tests/integration/test_borrow.py::TestBorrowFailures -q
+uv run pytest "tests/integration/test_return.py::TestFineGeneration::test_overdue_return_creates_fine" -q
+
+# 按关键字筛（大小写不敏感，支持 and/or/not）
+uv run pytest -k "fine and not collect" -q
+
+# 失败即停 + 打印完整局部变量
+uv run pytest -x -l
+
+# 只重跑上次失败的用例
+uv run pytest --lf
+
+# 显示最慢的 10 个用例
+uv run pytest --durations=10
+```
+
+### 6.4 IDE 配置
+
+**VS Code** —— 已被 `.vscode/settings.json` 预配置好，**开箱即用**：
+
+- 解释器指向 `backend/.venv/Scripts/python.exe`
+- 测试面板（左侧试管图标）自动发现全部用例，可单点运行 / 调试
+- Pylance 通过 `python.analysis.extraPaths` 解析 `app.*` 与 `scripts.*`
+- 推荐扩展列在 `.vscode/extensions.json`（Python / Pylance / Ruff）
+
+**PyCharm** —— 手动指定一次：
+
+1. `Settings → Project → Python Interpreter → Add Local Interpreter`
+2. 选 `Existing`，路径填 `backend\.venv\Scripts\python.exe`
+3. `Settings → Tools → Python Integrated Tools → Testing → Default test runner` 选 `pytest`
+4. 右键 `backend/tests` → `Run 'pytest in tests'`
+
+### 6.5 测试分层
+
+- `tests/unit/` —— 领域层，**不依赖数据库与 Web 框架**（这条约束本身也有测试守护）
+- `tests/integration/` —— API 端到端，每个用例使用独立内存 SQLite 库，互不影响
+- `tests/integration/test_layering.py` —— 架构约束校验：用 `ast` 解析真实 import 语句，
+  检查分层依赖方向（R-1/R-2/R-3/D-7）、规则数值未硬编码、表数 = 11、部分唯一索引存在
+
+### 6.6 当前状态
+
+**376 passed**，连续两次运行结果一致（约 21 ~ 35 s，视冷/热启动而定）。
+首次运行偏慢是因为 bcrypt 与 SQLite 的冷启动；测试内已通过 `LIBRARY_BCRYPT_ROUNDS=4` 降低哈希成本。
 
 ---
 
