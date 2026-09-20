@@ -8,3 +8,14 @@ venv/
 *.sqlite3
 .env
 docs_expr_description
+
+# 前端（pnpm）
+node_modules/
+frontend/dist/
+frontend/.pnpm-store/
+*.tsbuildinfo
+
+# 注意：以下文件**必须提交**（依赖锁定与解释器版本）
+#   backend/uv.lock
+#   backend/.python-version
+#   frontend/pnpm-lock.yaml
