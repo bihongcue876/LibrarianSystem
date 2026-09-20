@@ -3,11 +3,15 @@
 用法：
 
 ```bash
-python scripts/init_db.py --admin-username admin --admin-name 系统管理员 --admin-password <密码>
+python scripts/init_db.py --admin-username admin --admin-name <姓名> --admin-password <密码>
 ```
 
 **密码必须由命令行参数传入，无默认值**（决策：初始化密码不得硬编码，`13` §7.1）。
 规则数值属于**数据**而非**代码**，故允许出现在本脚本中（BR-049）。
+脚本幂等：重复执行只补齐缺失行，不会重复插入。
+
+> 输出刻意使用 ASCII（`[OK]` / `[SKIP]` / `[FAIL]`）——Windows 控制台默认 GBK
+> 编码，打印 `✓` 这类字符会直接抛 `UnicodeEncodeError` 导致脚本中断。
 """
 
 from __future__ import annotations
@@ -55,7 +59,7 @@ FINE_RULE_SEED = [
 def create_tables() -> None:
     load_all_models()
     Base.metadata.create_all(bind=engine)
-    print("✓ 建表完成（11 张表）")
+    print("[OK] tables ready (11 tables)")
 
 
 def seed_policies(session) -> None:
@@ -70,7 +74,7 @@ def seed_policies(session) -> None:
             )
         )
         added += 1
-    print(f"✓ 借阅规则：新增 {added} 条，跳过已存在 {len(existing)} 条")
+    print(f"[OK] borrow policies: {added} added, {len(existing)} skipped")
 
     existing_rules = {row.item_type for row in session.scalars(select(FineRuleModel)).all()}
     added = 0
@@ -83,28 +87,28 @@ def seed_policies(session) -> None:
             )
         )
         added += 1
-    print(f"✓ 罚款规则：新增 {added} 条，跳过已存在 {len(existing_rules)} 条")
+    print(f"[OK] fine rules: {added} added, {len(existing_rules)} skipped")
 
 
 def create_admin(session, username: str, name: str, password: str) -> None:
     if not password:
-        raise SystemExit("✗ 错误：必须通过 --admin-password 传入密码（不提供默认值）")
+        raise SystemExit("[FAIL] --admin-password is required (no default value)")
     existing = session.scalar(
         select(SystemAdminModel).where(SystemAdminModel.username == username)
     )
     if existing is not None:
-        print(f"· 系统管理员 {username} 已存在，跳过创建")
+        print(f"[SKIP] system admin {username} already exists")
         return
     session.add(
         SystemAdminModel(name=name, username=username, password_hash=hash_password(password))
     )
-    print(f"✓ 已创建系统管理员：{username}")
+    print(f"[OK] system admin created: {username}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="初始化图书管理系统数据库")
     parser.add_argument("--admin-username", default="admin")
-    parser.add_argument("--admin-name", default="系统管理员")
+    parser.add_argument("--admin-name", default="System Admin")
     parser.add_argument(
         "--admin-password",
         required=True,
@@ -123,7 +127,7 @@ def main() -> None:
         raise
     finally:
         session.close()
-    print("✓ 初始化完成")
+    print("[OK] database initialized")
 
 
 if __name__ == "__main__":
