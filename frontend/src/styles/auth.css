@@ -1,0 +1,232 @@
+/* 登录页样式 */
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.auth-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-12);
+  background: linear-gradient(150deg, var(--brand-700) 0%, var(--brand-900) 55%, #1e1b4b 100%);
+  color: #fff;
+  overflow: hidden;
+}
+
+/* 背景纹理：柔和光斑 */
+.auth-hero::before,
+.auth-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+}
+
+.auth-hero::before {
+  width: 420px;
+  height: 420px;
+  background: rgb(129 140 248 / 0.45);
+  top: -120px;
+  right: -100px;
+}
+
+.auth-hero::after {
+  width: 360px;
+  height: 360px;
+  background: rgb(56 189 248 / 0.28);
+  bottom: -110px;
+  left: -80px;
+}
+
+.auth-hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-hero__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: var(--space-12);
+}
+
+.auth-hero__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 0.14);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.auth-hero__title {
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-5);
+}
+
+.auth-hero__desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgb(255 255 255 / 0.72);
+  max-width: 420px;
+}
+
+.auth-hero__features {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+
+.auth-feature__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  flex-shrink: 0;
+}
+
+.auth-feature__label {
+  font-weight: 600;
+  margin-bottom: 1px;
+}
+
+.auth-feature__desc {
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.6);
+}
+
+/* ---- 表单侧 ---- */
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  background: var(--bg-surface);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-form__title {
+  font-size: 26px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+}
+
+.auth-form__desc {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-8);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--gray-100);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
+}
+
+.auth-tab {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.auth-tab:hover {
+  color: var(--text-primary);
+}
+
+.auth-tab--active {
+  background: var(--bg-surface);
+  color: var(--brand-700);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+
+.auth-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.auth-form__footer {
+  margin-top: var(--space-6);
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.auth-link {
+  color: var(--brand-600);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-hint {
+  margin-top: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+  border: 1px dashed var(--border-strong);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.auth-hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--gray-100);
+  padding: 1px var(--space-1);
+  border-radius: 4px;
+}
+
+@media (max-width: 960px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-hero {
+    display: none;
+  }
+}

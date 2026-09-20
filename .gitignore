@@ -14,6 +14,8 @@ node_modules/
 frontend/dist/
 frontend/.pnpm-store/
 *.tsbuildinfo
+# Vite 加载 vite.config.ts 时生成的临时产物，每次启动都会重建
+*.timestamp-*.mjs
 
 # 注意：以下文件**必须提交**（依赖锁定与解释器版本）
 #   backend/uv.lock
