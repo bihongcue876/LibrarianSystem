@@ -774,3 +774,70 @@
 - **状态**：✅ 完成
 
 ---
+
+### 步骤 25：搭建本地 pytest 入口 + IDE 集成
+
+- **阶段**：实验二 · 环境可用性
+- **用户要求**：「本地搭建 pytest，以便进行测试。」
+- **背景**：pytest 9.1.1 已随 `uv sync` 装在 `backend/.venv` 内，缺的不是 pytest 本身，而是**能直接用的入口**。
+- **操作**：
+  1. 修掉真实缺陷：仓库根目录跑测试报 `ModuleNotFoundError: No module named 'app'`
+     （pytest 只从当前目录**向上**找配置文件，不向下找）→ `backend/pyproject.toml` 补 `pythonpath`，仓库根新增 `pytest.ini`
+  2. 新增 `run-tests.ps1`：`$PSScriptRoot` 定位项目、缺环境自动 `uv sync`、无 uv 回退 venv python、支持 `-Scope` 与 `-Keyword`
+  3. 新增 `.vscode/settings.json` + `extensions.json`：解释器、测试发现、Pylance `extraPaths`、推荐扩展
+  4. README 第 6 节重写：三种运行入口、脚本用法、常用筛选、IDE 配置
+- **产出**：`pytest.ini`、`run-tests.ps1`、`.vscode/*`、`README.md`、`backend/pyproject.toml`
+- **验证**：3 个入口 + 2 个脚本分支全部 **376 passed**
+- **状态**：✅ 完成
+
+---
+
+### 步骤 26：系统可用性盘点 + 真实端到端验证（Windows）
+
+- **阶段**：实验二 · 可用性确认
+- **用户要求**：确认 Windows 机器上的搭建程度与实际可用范围。
+- **操作**：
+  1. **发现并修复真实缺陷**：`scripts/init_db.py` 用 `print("✓ …")` 输出非 ASCII，
+     Windows 控制台默认 GBK → `UnicodeEncodeError` 崩溃。**表已建好但规则与管理员未播种**，
+     脚本以退出码 1 结束，使用者会误以为成功。改全部输出为纯 ASCII（`[OK]`/`[SKIP]`/`[FAIL]`），
+     `--admin-name` 默认值改 ASCII，docstring 注明原因
+  2. 确认初始化脚本**幂等**（重跑只补齐缺失行）
+  3. 启动真实 uvicorn + SQLite，跑通完整业务闭环：管理员登录 → 新增馆员 → 建题录/副本 →
+     读者注册 → 读者越权得 **403** → 办证 `CARD2026000001` → 借书前置确认 → 借书 → 还书 → 查询 → 馆藏统计
+  4. 实测业务规则正确：本科额度 **5**、借期 **30 天**（9/20 → 10/20）、借后剩余额度 **4**
+  5. 更新 `README.md` §5.2（幂等说明 + Windows 编码注意）、新增 §5.5（Windows 一键启动）
+- **产出**：`backend/scripts/init_db.py`、`README.md`
+- **结论**：后端功能完整可用，交互入口为 Swagger UI（`/docs`）；前端不在实验二范围。
+- **状态**：✅ 完成
+
+---
+
+### 步骤 27：实现 React 前端（实验二范围外的配套 Web 客户端）
+
+- **阶段**：实验二 · 前端实现
+- **用户要求**：「我需要一个美观有效的前端。请依据此，采用 react 经典技术框架完成。」
+- **技术选型**：React 18 + TypeScript + Vite 5 + React Router 6；
+  **不引入任何 UI 组件库与图标库** —— 设计系统用 CSS 变量自建，图标用内联 SVG，避免依赖膨胀
+- **契约先行**：写代码前通读后端全部 router + schema + `query_service`，整理出准确的
+  端点、字段名、权限、格式约束（`card_no` 必须 `^CARD\d{10}$`、`barcode` 必须 `^BC\d{8}$`），
+  **这一步骤避免了大量靠猜接口的错误**
+- **实现范围**：
+  1. 基础设施：`types.ts`（DTO 类型镜像 + 枚举字典）、`client.ts`（错误归一化、401 全局登出、
+     令牌与账号持久化）、`endpoints.ts`（按 router 分组）、`AuthContext`、路由守卫
+  2. 设计系统：`tokens.css`（色阶 / 间距 / 圆角 / 阴影 / 动效）、`components.css`、`layout.css`、`auth.css`
+  3. 组件：`Button`/`Field`/`Input`/`Card`/`Badge`/`Alert`/`Modal`/`Toast`/`Skeleton`/`StatTile` + 20 余个 SVG 图标
+  4. 页面 10 个：登录（三角色入口 + 读者注册 + API 文档）、图书检索、我的借阅、
+     借还流通、读者查询、罚款收缴、借阅证管理、书目与馆藏、规则维护、账号管理、馆藏统计
+  5. 侧边栏与路由按角色过滤（读者 2 项 / 馆员 4 项 / 管理员 9 项）
+- **如实披露后端能力缺口**：`AdminCatalogPage` 需要「按题录列出全部副本」，但后端仓储层虽有
+  `find_items_by_title`，**表现层未暴露该 HTTP 端点**。未擅自新增后端接口（那属实验二规格范围），
+  改为「新增副本回显 `item_id` → 用该编号做后续操作」的真实可用流程，并在界面用 `Alert` 明确说明。
+- **产出**：`frontend/` 共 30 个文件
+- **验证**：
+  - `pnpm typecheck` 零错误；`pnpm build` 成功（58 modules，`index.js` 251.58 kB / gzip 78.26 kB）
+  - 经 Vite 代理跑通 **45 项**接口断言（认证 / 权限 / 书目 / 办证 / 借还 / 续借 / 预约 / 规则 / 统计 / 边界）
+  - **真实 Chromium 实测**：管理员登录 → 馆员借书（前置校验六项明细 + 确认弹窗）→ 馆员还书 →
+    读者查看我的借阅，数据全部正确落库（借后库存 2→1、应还 30 天后、还后历史记录 +1）
+- **状态**：✅ 完成
+
+---
