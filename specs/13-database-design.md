@@ -525,7 +525,7 @@ CHECK (length(barcode) = 10 AND barcode LIKE 'BC%')
 CREATE UNIQUE INDEX uq_library_items_barcode ON library_items(barcode);
 ```
 
-**`status` 与题录软删除的联动**（BR-042）：题录软删除时，其下未借出副本同步置 `REMOVED`；已借出副本待归还后置 `REMOVED`。此逻辑在**应用层**实现，不建触发器——因为"已借出副本待归还后处理"需要跨时间点的状态追踪，触发器难以表达。
+**`status` 与题录软删除的联动**（FR-011 验收标准 3/4）：题录软删除时，其下未借出副本同步置 `REMOVED`；已借出副本待归还后置 `REMOVED`。此逻辑在**应用层**实现，不建触发器——因为"已借出副本待归还后处理"需要跨时间点的状态追踪，触发器难以表达。
 
 ---
 
@@ -540,7 +540,7 @@ CREATE UNIQUE INDEX uq_library_items_barcode ON library_items(barcode);
 | `due_at` | DATETIME | NOT NULL | 应归还时刻（UTC），**借出时快照** |
 | `returned_at` | DATETIME | NULL | 实际归还时刻（UTC） |
 | `status` | VARCHAR(20) | NOT NULL, CHECK | 见下 |
-| `librarian_id` | INTEGER | NOT NULL, FK → `librarians.librarian_id` | 经办人（BR-018/D-18） |
+| `librarian_id` | INTEGER | **NULL**, FK → `librarians.librarian_id` | 经办人（图书管理员）。系统管理员经办时为空，见下 |
 | `renew_count` | INTEGER | NOT NULL, DEFAULT 0 | 已续借次数（0-2） |
 | `created_at` | DATETIME | NOT NULL | 记录创建时间（UTC） |
 
@@ -553,7 +553,6 @@ CHECK (renew_count BETWEEN 0 AND 2)
 CHECK (returned_at IS NULL OR returned_at >= borrowed_at)
 CHECK (due_at > borrowed_at)
 ```
-
 **`status` 只存两态的决策依据**
 
 `05-domain-model.md` §5.1 明确 `OVERDUE` 是**派生状态**——由 `due_at` 与当前时刻实时判定，无须持久化。持久化三态会引入**数据陈旧风险**：一条 `BORROWED` 记录过了 `due_at` 后，其 `status` 字段需要有人在某个时刻改成 `OVERDUE`，而这个"某个时刻"无人负责。存两态则永远一致。
@@ -569,6 +568,22 @@ WHERE reader_id = :reader_id AND status = 'BORROWED';
 ```
 
 **`due_at` 快照与规则不追溯**（BR-050）：`due_at` 在借出时刻由 `BorrowPolicy` 计算后写入，此后规则表无论如何修改，该记录的 `due_at` 不变。这是 BR-050 落地的唯一机制——**应用层无须任何额外判断**。
+
+**`librarian_id` 为何可空**（实现阶段发现的规格缺陷，v1.4 修正）
+
+BR-040 规定借书、还书、收缴罚款**必须由图书管理员或系统管理员执行**，但本列外键指向 `librarians` 表，系统管理员经办时无合法的 `librarian_id` 可写。
+
+原设计（`NOT NULL`）会导致「系统管理员代行流通业务」这一 BR-040 明确允许的路径**无法落库**。取舍对比：
+
+| 方案 | 做法 | 取舍 |
+|---|---|---|
+| **A. 改可空**（选用） | `librarian_id INTEGER NULL` | 改动最小；系统管理员经办时该列为 `NULL`，其身份不由本表留痕 |
+| B. 复制 `fine_records` 的 `operator_id` + `operator_role` | 加一列 `operator_role` | 留痕完整；但需同时放宽外键（改为无 FK），改动面更大 |
+| C. 收紧业务规则 | 仅图书管理员可经办流通 | 与本 BR-040 冲突，需改需求 |
+
+**选用方案 A** 的理由：本系统的流通业务在演示与真实使用中均由图书管理员经办，系统管理员代行属边缘路径；`fine_records` 采用方案 B 是因为罚款收缴人角色更常被查看与核对。**该差异是有意为之，不是不一致**——`fine_records.operator_role` 的存在即为此。
+
+**代价（已披露）**：系统管理员代行借还时，`librarian_id` 为 `NULL`，该次操作的操作人无法从本表追溯，只能依赖应用日志（ADR-04 已声明不建独立审计表）。若后续需要完整留痕，应按方案 B 补齐。
 
 ---
 
@@ -636,7 +651,7 @@ ORDER BY created_at ASC, reservation_id ASC;
 | `created_at` | DATETIME | NOT NULL | 产生时刻（UTC） |
 | `paid_at` | DATETIME | NULL | 缴纳时刻（UTC） |
 | `operator_id` | INTEGER | **NULL** | 收缴经办人；图书管理员与管理员共用此列，见下 |
-| `operator_role` | VARCHAR(20) | **NULL**, CHECK | 收缴人角色（`LIBRARIAN` / `ADMIN`），与 `operator_id` 配合消歧 |
+| `operator_role` | VARCHAR(20) | **NULL**, CHECK | 收缴人角色（`LIBRARIAN` / `SYSTEM_ADMIN`），与 `operator_id` 配合消歧 |
 
 **CHECK 约束**：
 
@@ -646,7 +661,7 @@ CHECK (overdue_days >= 0)
 CHECK (billed_days >= 0)
 CHECK (billed_days <= overdue_days)
 CHECK ((status = 'PAID') = (paid_at IS NOT NULL))   -- 状态与时间必须一致
-CHECK (operator_role IS NULL OR operator_role IN ('LIBRARIAN','ADMIN'))
+CHECK (operator_role IS NULL OR operator_role IN ('LIBRARIAN','SYSTEM_ADMIN'))
 CHECK (operator_id IS NULL OR operator_role IS NOT NULL)   -- 有经办人必有角色
 ```
 
@@ -667,7 +682,7 @@ CHECK (operator_id IS NULL OR operator_role IS NOT NULL)   -- 有经办人必有
 **选用方案 A**，并加 `operator_role VARCHAR(20)`：
 
 ```sql
-CHECK (operator_role IN ('LIBRARIAN','ADMIN'))
+CHECK (operator_role IN ('LIBRARIAN','SYSTEM_ADMIN'))
 CHECK (operator_id IS NULL OR operator_role IS NOT NULL)
 ```
 
@@ -987,3 +1002,5 @@ python scripts/init_db.py --admin-username admin --admin-password '<密码>'
 | v1.0 | 2026-09-19 | 初版制定。11 张表完整关系模式、20 个索引（含 3 个部分唯一索引）、单表继承映射策略、金额精度方案（`MoneyType`）、软删除与唯一约束冲突处理、种子数据。 | Agent 起草 |
 | v1.1 | 2026-09-19 | ① §3 重写「表 ↔ 领域对象」对应关系（14 个实体类 → 9 张实体表 + 2 张规则表 = 11 张），补数量核算；② §7.1 新增「首个系统管理员的密码处理」——命令行参数传入、无默认值；③ 术语统一为「图书管理员」。 | Agent 自检后修订 |
 | v1.2 | 2026-09-19 | §4.9 `fine_records` 字段表补 `operator_role` 行（v1.1 文字说明有但字段表漏列），并补两条 CHECK 约束（角色合法 + 有经办人必有角色）。 | Agent 修订 |
+| v1.3 | 2026-09-20 | ① §4.9 `operator_role` 取值由 `'ADMIN'` 统一为 `'SYSTEM_ADMIN'`，与系统其余部分的角色码（JWT claim、权限矩阵、账号角色）保持一致（实现阶段发现的不一致）；② §4.6 "题录软删除联动"的规则引用由 `BR-042`（实为权限校验规则）更正为 `FR-011 验收标准 3/4`。 | Agent 实现时交叉核对发现并修订 |
+| v1.4 | 2026-09-20 | §4.7 `loans.librarian_id` 由 `NOT NULL` 改为**可空**：BR-040 允许系统管理员代行借还业务，但该列外键指向 `librarians`，原设计使该合法路径无法落库。补充三方案取舍对比与代价披露。 | Agent 实现时发现规格缺陷并修订 |

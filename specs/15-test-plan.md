@@ -431,17 +431,58 @@
 
 | 项 | 标准 |
 |---|---|
-| 测试通过率 | **100%**（36/36） |
-| 领域层独立性 | `grep -rn "sqlalchemy\|fastapi" backend/app/domain/` → 0 命中 |
+| 测试通过率 | **100%** |
+| 领域层独立性 | `tests/unit/` 下无 `fastapi` / `sqlalchemy` / `starlette` 导入 |
 | 分层依赖 | `08-package-diagram.md` §2 的 R-1 ~ R-5 全部通过 |
-| 规则硬编码 | `grep -rn "== 5\|== 10\|== 15\|== 20\|0\.2\|0\.5\|1\.0" backend/app/domain/policies/` → 0 命中 |
+| 规则硬编码 | `app/domain/policies/` 与 `app/domain/domain_services/` 中无规则数值字面量 |
 | 可重复性 | 连续两次全量运行结果一致（测试不依赖执行顺序） |
+
+**执行方式**：`uv run pytest -q`（分层与规格约束由 `tests/integration/test_layering.py` 自动校验，不再依赖人工 grep）。
 
 ---
 
-## 6. 变更记录
+## 6. 实现结果对照（实测）
+
+> 计划与实际会有粒度差异——**计划的 36 个用例是"测试意图"的清单，不是最终的函数个数**。
+> 实际实现把每个用例展开为多个断言点，并用 `@pytest.mark.parametrize` 覆盖边界。
+
+| 项 | 计划 | 实际 |
+|---|---:|---:|
+| 单元测试文件 | — | 5 个 |
+| 集成测试文件 | — | 11 个 |
+| 测试用例（函数级，含参数化展开） | 36 | **376** |
+| 测试运行耗时 | — | ≈ 30 s |
+
+**分文件分布**：
+
+| 文件 | 对应计划的用例 |
+|---|---|
+| `unit/test_value_objects.py` | TC-020b（值对象部分） |
+| `unit/test_borrow_policy.py` | 规则覆盖矩阵（借阅规则） |
+| `unit/test_fine_rule.py` | TC-020、TC-021 |
+| `unit/test_entities.py` | TC-020b（实体状态机部分） |
+| `unit/test_domain_services.py` | 校验顺序、额度口径、续借边界、队列语义 |
+| `integration/test_health.py` | TASK-001 验收 + 核心接口契约存在性 |
+| `integration/test_auth.py` | TC-001 ~ TC-004 + 员工账号 |
+| `integration/test_card.py` | TC-005 ~ TC-007 + 状态机 |
+| `integration/test_catalog.py` | TC-033、TC-034 + 删除联动 |
+| `integration/test_borrow.py` | TC-008 ~ TC-014 + 校验顺序 |
+| `integration/test_return.py` | TC-015 ~ TC-019、TC-036 + 5 种类型罚款 |
+| `integration/test_renew.py` | TC-035 + BR-018 |
+| `integration/test_reservation.py` | TC-025 ~ TC-030 |
+| `integration/test_query.py` | TC-022 ~ TC-024 + 检索与分页 |
+| `integration/test_policy.py` | 规则维护 + BR-050 不追溯 |
+| `integration/test_permissions.py` | TC-031、TC-032 + 越权矩阵 |
+| `integration/test_layering.py` | §5 的 5 项通过标准（**把架构约束变成可回归的测试**） |
+
+**实测结果**：`376 passed`（连续两次运行一致，约 30 s）。
+
+---
+
+## 7. 变更记录
 
 | 版本 | 日期 | 变更内容 | 变更人 |
 |---|---|---|---|
 | v1.0 | 2026-09-20 | 初版制定。36 个测试用例（14 单元 + 22 集成），完整覆盖实验二点名的 14 个场景并额外补充 22 个；含规则覆盖矩阵、越权测试矩阵与 5 项通过标准。 | Agent 起草 |
 | v1.1 | 2026-09-20 | **按 `02` 各 FR 验收标准校准错误码与状态码**：① TC-008 `CARD_NOT_ACTIVE` → `CARD_INVALID`；② TC-010/011/012/013 预期状态码 409 → **400**，错误码 `OVERDUE_EXISTS` → `OVERDUE_LOAN_EXISTS`；③ TC-027 `ITEM_AVAILABLE_NO_NEED`（409）→ `ITEM_AVAILABLE_NO_RESERVATION`（400）；④ TC-035 续借失败 409 → 400，`LOAN_OVERDUE_CANNOT_RENEW` → `RENEW_OVERDUE`；⑤ 修正 4 处 BR 编号误引（BR-012/013/014a → BR-007/008/010/011，宽限期归 BR-027）。 | Agent 编 API 时交叉核对发现并修订 |
+| v1.2 | 2026-09-20 | 追加 §6「实现结果对照」：记录 376 个实际用例与 36 个计划用例的映射关系（计划是意图清单，实际按边界展开）；§5 通过标准的执行方式改为 `uv run pytest` + 自动化分层校验。 | Agent 实现后回填 |

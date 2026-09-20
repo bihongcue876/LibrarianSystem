@@ -687,22 +687,158 @@ WorkBuddy（CodeBuddy Agent）
 
 ---
 
+## 第 14 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 详细设计规格生成
+
+### 使用任务
+
+按实验二步骤 1~7 生成 7 份详细设计规格：详细设计模型、3 张顺序图、API 规范、测试计划、任务拆解。
+
+### 输入 Prompt 摘要
+
+用户指令"允许按照计划完成实验二的流程"。Agent 先完整阅读实验二文档（含 24 个步骤与最终验收的 13 项标准），建立 8 项任务清单后逐步产出。
+
+### Agent 修改文件
+
+新建 7 份规格：`09-design-model.md`、`10-sequence-borrow-book.md`、`11-sequence-return-book.md`、`12-sequence-reserve-book.md`、`14-api-spec.md`、`15-test-plan.md`、`16-tasks.md`
+
+### 输出摘要
+
+**① `09` 详细设计模型**：以用例为单元设计 8 个用例，每个给出 Controller 入口、Application Service、Domain Service、Entity/Aggregate、Repository、DTO、异常、事务边界；附 24 个 DTO、6 类异常映射、10 项事务边界、8 处设计模式落点，以及「实验文档建议类名 ↔ 本项目实际类名」对照表（如 `LibrarianController` ↔ `circulation_router`）。
+
+**② `10`/`11`/`12` 三张顺序图**：Mermaid `sequenceDiagram`，参与对象分别为 14 / 14 / 12 个，用 `alt`/`else` 表达正常流程与全部异常分支。`11` 另附 5 行金额计算示例表（与 `FineRule` 单元测试对齐）。
+
+**③ `14` API 规范**：32 个 REST 接口，每个含方法/路径、请求参数、响应结果、权限要求、成功场景、失败场景（含 HTTP 状态码与错误码）。
+
+**④ `15` 测试计划**：36 个测试用例（14 单测 + 22 集成），覆盖实验二点名的 14 个场景并额外补充 22 个；含规则覆盖矩阵、越权矩阵与 5 项通过标准。
+
+**⑤ `16` 任务拆解**：18 个编码任务，每个含编号、目标、输入规格、允许/不允许修改文件、实现要求、验收标准、建议测试；附分层红线自检与任务依赖图。
+
+### 关键发现（Agent 交叉核对，非用户提示）
+
+编写 API 规范时**逐条对照 `02-requirements.md` 的 FR 验收标准**，发现并修正 **12 处规格缺陷**：
+
+| # | 问题 | 修正 |
+|:---:|---|---|
+| 1 | 借书业务规则失败被按 `07` §6.2 的通用映射写成 **409**，但 FR-016 规定为 **400** | `14`、`09`、`10`、`15` 四处校准；`07`/`09` 补注"以 FR 为准" |
+| 2 | 错误码 `CARD_NOT_ACTIVE` 与 FR-016 的 `CARD_INVALID` 不一致 | 统一为 `CARD_INVALID` |
+| 3 | 错误码 `OVERDUE_EXISTS` 与 FR-016 的 `OVERDUE_LOAN_EXISTS` 不一致 | 统一 |
+| 4 | 预约失败码 `ITEM_AVAILABLE_NO_NEED` 与 FR-021 的 `ITEM_AVAILABLE_NO_RESERVATION` 不一致 | 统一 |
+| 5 | 漏了 FR-021 验收 5 的 `CARD_REQUIRED`（无借阅证不可预约） | 补入 |
+| 6 | 续借失败码与 FR-018 的 `RENEW_LIMIT_EXCEEDED` / `RENEW_OVERDUE` 不一致 | 统一 |
+| 7 | `14` 虚构了"题录下有未归还副本则 409"，而 FR-011 验收 4 明确删除**不失败** | 删去虚构约束，补正确行为说明 |
+| 8 | `14` 虚构了"注销借阅证时有未归还借阅则 409"，FR-006 无此条件 | 删去 |
+| 9 | FR-013 验收 4 规定 `BORROWED` 副本删除返回 **400**，写成 409 | 校准 |
+| 10 | `06` §9.2 与 `13` §4.6 把"题录删除联动副本"引作 `BR-042`，而 BR-042 实为权限校验规则 | 更正为 `FR-011 验收标准 3/4` |
+| 11 | `15` 测试计划误引 4 处 BR 编号（BR-012/013/014a） | 更正为 BR-007/008/010/011，宽限期归 BR-027 |
+| 12 | `09` 预约状态机写了不存在的 `COMPLETED` 态 | 更正为 4 态 |
+
+**发现的规格空缺 1 处**：BR-020 字面含义下"无任何副本的题录也可预约"（"所有副本均不可借"对空集成立），`02` 未作限制。`09`/`BookTitle.can_be_reserved()` 按**字面实现**，不自行加规则，并在代码注释与规格中标注该判断依据。
+
+### 人工审查结果
+
+用户拍板三项技术决定：① 实验二流程继续执行；② **后端改用 uv** 管理依赖、**前端采用 pnpm**；③ **后端 Python 版本定为 3.14**。
+
+### 测试结果
+
+不适用（文档阶段）。已自查：`09` 的 6 项人工审查重点（Controller 职责、借书编排落点、规则归属、罚款计算落点、Repository 职责、异常类型）逐条给出结论。
+
+### Git 提交
+
+`docs: generate experiment 2 detailed design specs`
+
+---
+
+## 第 15 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 代码实现（18 个任务）
+
+### 使用任务
+
+按 `16-tasks.md` 实现 FastAPI 后端：四层骨架 → 领域层 → 持久化 → Repository → 领域服务 → 策略对象 → 7 个应用服务 → 7 个路由 → 初始化脚本 → 测试。
+
+### 输入 Prompt 摘要
+
+用户指令"建议补完"（继续修复并完成实验二），同时确立工具链：后端 uv、前端 pnpm、Python 3.14。
+
+### Agent 修改文件
+
+新建 `backend/` 完整实现，共 62 个文件：
+
+- `pyproject.toml`、`uv.lock`、`.python-version`（uv 工具链，Python 3.14）
+- `app/domain/`：14 实体 + 5 值对象 + 7 枚举 + 3 领域服务 + 2 策略对象 + 2 工厂 + 异常体系
+- `app/application/`：7 应用服务 + 9 个 Port（7 Repository + 2 安全能力）+ UnitOfWork + 异常
+- `app/infrastructure/`：11 张表 ORM + `MoneyType` + 7 Mapper + 7 Repository 实现 + 安全适配器
+- `app/presentation/`：7 路由 + 7 组 DTO + 鉴权守卫 + 序列化辅助
+- `scripts/init_db.py`、`tests/`（16 个测试文件）
+
+### 输出摘要
+
+**关键架构落点**：
+
+- 领域实体为**纯 Python 类**，ORM 模型与之分离，经 Mapper 双向转换（宪法第五条 / ADR-05）
+- `MoneyType` 把金额以 **TEXT** 存储——SQLite 无原生 DECIMAL，`Numeric` 会降级为 REAL，重新引入浮点误差
+- `BorrowEligibilityService` 按序**惰性**求值六项校验，遇首个失败即抛异常（不先算全部再筛选）
+- 规则数值全部存库，代码中无 `if reader_type == ...: return 5` 分支（BR-049）
+- `due_at` 与 `unit_price` 生成时快照，规则修改不追溯（BR-050）
+
+**实现过程中发现并修复的问题 7 项**：
+
+| # | 问题 | 处理 |
+|:---:|---|---|
+| 1 | `loans.librarian_id NOT NULL` 外键指向 `librarians`，但 BR-040 允许系统管理员代行借还——该合法路径无法落库 | 改为可空，附三方案取舍对比与代价披露（`13` §4.7 v1.4） |
+| 2 | `fine_records.operator_role` 取值 `'ADMIN'` 与系统其余角色码 `'SYSTEM_ADMIN'` 不一致 | 统一（`13` §4.9 v1.3） |
+| 3 | **真实分层违规**：`application/services/auth_service.py` 直接 `import app.infrastructure.security` | 新增 `application/ports/security.py`（`PasswordHasher` / `TokenIssuer`）+ 基础设施适配器，改为依赖注入 |
+| 4 | `check_unpaid_fine` 用 `sum()` 累加字符串，抛 `TypeError` | 改为 `Money` 累加 |
+| 5 | `check_and_raise` 先计算全部校验再筛选，与"遇首个失败即返回"语义不符 | 改为按序惰性求值 |
+| 6 | 超期场景测试辅助函数把"应还日减 N 天"，对 60 天借期的记录减完仍在未来 | 改为设为**当前时刻前的绝对值** |
+| 7 | 分层检查器用字符串匹配，把 docstring 里对约束的说明误判为违规 | 改用 `ast` 解析真实 import 语句 |
+
+### 测试结果
+
+**376 passed**，连续两次运行结果一致（约 30 s）。分布：单元测试 5 个文件 + 集成测试 11 个文件。
+
+其中 `integration/test_layering.py`（20 项）把**架构约束变成可回归的测试**：用 `ast` 校验 R-1/R-2/R-3/D-7 的依赖方向、扫描策略对象与领域服务中是否硬编码规则数值、断言表数 = 11 与三个部分唯一索引存在、验证金额列为 TEXT。
+
+### 人工审查结果
+
+用户确认继续并指定工具链（uv / pnpm / Python 3.14）。Agent 已按此更新 `07-architecture.md` §5（技术栈、Python 版本、uv 与 pnpm 两节）与 `16-tasks.md`（命令与自检方式）。
+
+### Git 提交
+
+`feat: implement experiment 2 backend` 系列
+
+---
+
 ## 使用统计
 
 | 项目 | 数值 |
 |---|---|
-| 累计使用次数 | 13 次 |
-| 已生成规格文档 | 13 份 |
+| 累计使用次数 | 15 次 |
+| 已生成规格文档 | 20 份 |
 | 已发现并裁定规格冲突 | 5 处 |
-| 已发现并修正的规格不一致 | 1 处（宪法第三条 UML 工具滞后） |
-| **自检发现并修复的问题** | **20 类**（第一轮 14 类 + 第二轮 6 类设计层面） |
+| 已发现并修正的规格不一致 | 18 处（实验一 1 处 + 详细设计 12 处 + 实现阶段 7 处，含 2 处重复计入） |
+| **自检发现并修复的问题** | **20 类**（实验一）+ **19 处**（实验二，含 1 处真实分层违规） |
 | 已识别风险项 | 30 项（3 高 / 19 中 / 8 低） |
-| Git 提交次数 | 15 次 |
-| 代码任务 | 0（实验一不含代码） |
+| 代码规模 | 62 个文件；测试 376 项全绿 |
+| Git 提交次数 | 18 次 |
 
 ---
 
 ## 后续待记录
 
-- 步骤 18：冻结实验一 Baseline（tag `experiment1-specs-baseline-v1`，用户改用本地备份方式冻结，标签可选）
-- 实验二全部内容
+- 实验二 specs baseline 标签（`experiment2-specs-baseline-v1`，用户采用本地备份方式冻结）
+- 前端实现（本期未纳入实验二范围；包管理约定为 pnpm）

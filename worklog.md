@@ -50,7 +50,13 @@
 | 16 | 生成风险分析与审查清单 | 实验一 · Elaboration | `17`、`18` | ⏳ 待审查 |
 | 17 | 人工审查与修订 | 实验一 · Elaboration | 修订 10 份 specs | ✅ 完成（含 17b 收尾，两轮审查修复 20 类问题） |
 | 17b | 收尾验证与 Q-02/03/05 清零 | 实验一 · Elaboration | `02`、`03`、`18` | ✅ 完成 |
-| 18 | 冻结实验一 Baseline | 实验一 · Elaboration | tag `experiment1-specs-baseline-v1` | ⬜ 待办（前置条件已满足） |
+| 18 | 冻结实验一 Baseline | 实验一 · Elaboration | 本地备份冻结（未打标签） | ✅ 完成（用户选择备份方式） |
+| 19 | 补齐 AI 使用日志第 12~13 次记录 | 实验一 · 收尾 | `19-ai-usage-log.md` | ✅ 完成 |
+| 20 | 生成实验二 7 份详细设计规格 | 实验二 · Elaboration | `09`、`10`、`11`、`12`、`14`、`15`、`16` | ✅ 完成（含 12 处规格校准） |
+| 21 | 冻结实验二 Specs baseline | 实验二 · Elaboration | — | ✅ 完成（用户授权按计划推进） |
+| 22 | 实现后端代码（18 个任务） | 实验二 · Construction | `backend/` 62 个文件 | ✅ 完成 |
+| 23 | 编写并跑通自动化测试 | 实验二 · Construction | `backend/tests/` 16 个文件 | ✅ 完成（376 passed） |
+| 24 | 生成 README + 更新日志 | 实验二 · Transition | `README.md`、`19`、`worklog.md` | ✅ 完成 |
 
 ---
 
@@ -654,17 +660,117 @@
 
 ---
 
-### 步骤 18：冻结实验一 Baseline（待办）
+### 步骤 18：冻结实验一 Baseline（已完成）
 
 - **前置条件**：
   1. `18-review-checklist.md` §2 ~ §9 全部审查项完成
-  2. 19 张 Mermaid 图验证渲染正常
+  2. Mermaid 图验证渲染正常
   3. `02` §7 剩余待确认问题裁定完毕
+- **实际处置**：用户选择**本地备份**方式冻结（未打 Git 标签）。三项前置条件均已满足。
+- **状态**：✅ 完成
+
+---
+
+# 2026-09-20
+
+### 步骤 19：补齐 AI 使用日志第 12~13 次记录
+
+- **时间**：2026-09-20 10:00
+- **阶段**：实验一 · 收尾
+- **触发**：用户指令"看一下有什么需要补充的吗"
+- **操作**：盘点实验一交付物完整性时发现 `19-ai-usage-log.md` 只记录到第 11 次使用，缺第 12 次（第二轮设计审查 6 处修复）与第 13 次（机械检查落地 + Q-02/03/05 裁定）。按前 11 次的完整格式补齐。
+- **产出**：`specs/19-ai-usage-log.md`
+- **Git**：`abdd6c2` docs: add AI usage records 12-13 and update usage statistics
+- **状态**：✅ 完成
+
+---
+
+### 步骤 20：生成实验二 7 份详细设计规格
+
+- **时间**：2026-09-20 10:41
+- **阶段**：实验二 · Elaboration
+- **触发**：用户指令"允许按照计划完成实验二的流程"
 - **操作**：
-  ```bash
-  git add specs
-  git commit -m "baseline experiment 1 architecture specs"
-  git tag experiment1-specs-baseline-v1
-  ```
+  1. 完整阅读实验二文档（24 个步骤 + 13 项最终验收标准），建立 8 项任务清单
+  2. 生成 `09-design-model.md`：8 个用例的逐项详细设计（Controller 入口 / Application Service / Domain Service / Entity / Repository / DTO / 异常 / 事务边界）
+  3. 生成 3 张顺序图（Mermaid，参与对象 14/14/12 个，含全部异常分支）
+  4. 生成 `14-api-spec.md`（32 个 REST 接口）、`15-test-plan.md`（36 个用例）、`16-tasks.md`（18 个编码任务）
+  5. **逐条对照 `02` 的 FR 验收标准做交叉核对**，发现并修正 **12 处规格缺陷**
+- **产出**：`specs/09`、`10`、`11`、`12`、`14`、`15`、`16`；同时修订 `06`、`07`
+- **关键发现**：
+  - `07` §6.2 的异常→HTTP 通用映射（业务规则 409）与 `02` FR-016（400）冲突 → 确立"以 FR 为准"
+  - 错误的错误码共 5 处（`CARD_NOT_ACTIVE`/`OVERDUE_EXISTS`/`ITEM_AVAILABLE_NO_NEED`/续借两码）
+  - `14` 虚构了 2 条约束（题录删除时有未归还副本则 409、注销借阅证时有未归还借阅则 409），均与 `02` 相反 → 删去
+  - `06`/`13` 把"题录删除联动"引作 `BR-042`，实为权限校验规则 → 更正为 `FR-011`
+  - `09` 预约状态机写了不存在的 `COMPLETED` 态 → 更正为 4 态
+- **Git**：`docs: generate experiment 2 detailed design specs`
+- **状态**：✅ 完成
+
+---
+
+### 步骤 21：冻结实验二 Specs baseline
+
+- **触发**：用户指令"建议补完"
+- **操作**：实验二 7 份规格已提交，视为冻结。用户未要求打标签，沿用本地备份方式。
+- **状态**：✅ 完成
+
+---
+
+### 步骤 22：实现后端代码（18 个任务）
+
+- **时间**：2026-09-20 10:41 起
+- **阶段**：实验二 · Construction
+- **触发**：用户指令"建议补完"，同时确立工具链决定：
+  1. 后端改用 **uv** 管理依赖
+  2. 前端采用 **pnpm**
+  3. 后端 Python 版本定为 **3.14**
+- **操作**：
+  1. 用 `uv python install 3.14` 装解释器，`uv sync` 建 `.venv` 并生成 `uv.lock`；移除 `requirements.txt`
+  2. 按 `16-tasks.md` 顺序实现四层：领域层 → 基础设施层 → 应用层 → 表现层
+  3. 领域层：14 实体 + 5 值对象 + 7 枚举 + 3 领域服务 + 2 策略对象 + 2 工厂（纯 Python，零框架依赖）
+  4. 基础设施层：11 张表 ORM + `MoneyType`（TEXT 存金额）+ 7 Mapper + 7 Repository 实现 + 安全适配器
+  5. 应用层：7 应用服务 + 9 个 Port + UnitOfWork + 异常体系
+  6. 表现层：7 路由 + 7 组 DTO + 鉴权守卫 + 序列化辅助
+  7. `scripts/init_db.py`：建表 + 播种 5+5 条规则 + 创建首个系统管理员（密码必须命令行传入）
+- **产出**：`backend/` 62 个文件
+- **实现中发现并修复的问题 7 项**：
+  1. `loans.librarian_id NOT NULL` 外键指向 `librarians`，但 BR-040 允许系统管理员代行借还 → 改为可空并披露代价
+  2. `fine_records.operator_role` 取值 `'ADMIN'` 与系统其余角色码不一致 → 统一为 `'SYSTEM_ADMIN'`
+  3. **真实分层违规**：`auth_service` 直接 import `infrastructure.security` → 新增 `application/ports/security.py` + 适配器，改为依赖注入
+  4. `check_unpaid_fine` 用 `sum()` 累加字符串抛 `TypeError` → 改为 `Money` 累加
+  5. `check_and_raise` 先算全部再筛选，违背"遇首个失败即返回" → 改为按序惰性求值
+  6. 超期测试辅助把"应还日减 N 天"，对 60 天借期记录减完仍在未来 → 改为设为当前时刻前的绝对值
+  7. 分层检查器用字符串匹配，误判 docstring 中的约束说明 → 改用 `ast` 解析真实 import
+- **状态**：✅ 完成
+
+---
+
+### 步骤 23：编写并跑通自动化测试
+
+- **阶段**：实验二 · Construction
+- **操作**：
+  1. 按 `15-test-plan.md` 编写 16 个测试文件（5 单测 + 11 集成）
+  2. 用独立内存 SQLite 库隔离每个测试；覆盖 `get_session` 依赖把应用指向测试库
+  3. 新增 `integration/test_layering.py`：**把架构约束变成可回归的测试**（`ast` 校验依赖方向、规则数值不硬编码、表数 = 11、三个部分唯一索引、金额列为 TEXT）
+  4. 测试中发现并修复 3 处问题（见步骤 22 的第 3、4、5 项）
+- **产出**：`backend/tests/` 16 个文件
+- **实测结果**：**376 passed**，连续两次运行一致（约 30 s）
+- **状态**：✅ 完成
+
+---
+
+### 步骤 24：生成 README + 更新日志
+
+- **阶段**：实验二 · Transition
+- **操作**：
+  1. 生成根目录 `README.md`：项目简介、技术栈、架构与分层约束、目录结构、uv 启动方式、测试方式、核心用例与接口、UML 说明、Agent 使用说明、已知限制
+  2. 更新 `specs/19-ai-usage-log.md`：补第 14、15 次使用记录，统计更新为 15 次
+  3. 更新本 worklog 步骤总览与实验二步骤
+  4. 更新 `07-architecture.md` §5（Python 3.14、uv、pnpm）、§8（目录结构）
+  5. 更新 `16-tasks.md`（uv 命令、自动化分层校验、附录 C 实现结果对照）
+  6. 更新 `15-test-plan.md` §5/§6（通过标准与实现结果对照）
+  7. 更新 `.gitignore`（前端 pnpm 相关；注明必须提交的锁文件）
+- **产出**：`README.md`、`specs/07`、`specs/15`、`specs/16`、`specs/19`、`worklog.md`、`.gitignore`
+- **状态**：✅ 完成
 
 ---

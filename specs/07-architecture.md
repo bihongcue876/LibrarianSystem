@@ -340,26 +340,61 @@ class ReaderFactory:
 
 | 层 | 技术 | 版本 | 选型理由 |
 |---|---|---|---|
-| 表现层 | FastAPI | ≥ 0.110 | 原生异步、Pydantic 集成、自动 OpenAPI 文档 |
+| 表现层 | FastAPI | ≥ 0.115 | 原生异步、Pydantic 集成、自动 OpenAPI 文档 |
 | 表现层 | Pydantic | ≥ 2.x | 参数校验与 DTO 定义，性能优于 v1 |
-| 应用层 | 纯 Python | 3.11+ | 用 `match` 语法、`Protocol`、`dataclass` |
-| 领域层 | 纯 Python | 3.11+ | 同上，零框架依赖 |
+| 应用层 | 纯 Python | **3.14+** | 用 `match` 语法、`Protocol`、`dataclass` |
+| 领域层 | 纯 Python | **3.14+** | 同上，零框架依赖 |
 | 基础设施 | SQLAlchemy | ≥ 2.x | ORM 映射，2.0 风格支持类型标注 |
 | 基础设施 | SQLite | 内置 | 零部署成本，满足课程实验规模；通过 SQLAlchemy 隔离，后续可换 PostgreSQL |
-| 基础设施 | passlib + bcrypt | — | 密码哈希（BR-045） |
-| 基础设施 | PyJWT | — | 简化版 JWT 登录（D-01、D-01a） |
+| 基础设施 | bcrypt | ≥ 4.1 | 密码哈希（BR-045）。**不引入 passlib**——passlib 已停止维护，直接调用 bcrypt 更少一层依赖 |
+| 基础设施 | PyJWT | ≥ 2.8 | 简化版 JWT 登录（D-01、D-01a） |
 | 测试 | pytest | ≥ 8.x | 单元测试 + 集成测试 |
 | 测试 | httpx / `TestClient` | — | 端到端 API 测试 |
+| **后端依赖管理** | **uv** | ≥ 0.5 | 统一 Python 版本、虚拟环境与依赖锁定（`pyproject.toml` + `uv.lock`） |
 | 前端 | TypeScript（+ HTML/CSS） | 5.x | 实验二交付；实验一不涉及代码 |
+| **前端包管理** | **pnpm** | ≥ 9 | 硬链接式 `node_modules`，磁盘占用小、安装快，天然隔离幽灵依赖 |
 
 ### 5.2 Python 版本要求
 
-要求 **Python 3.11+**，原因：
+要求 **Python 3.14+**（由 uv 统一管理，见 §5.4），原因：
 
 - `match` 语句（Factory 模式实现）
 - `typing.Protocol`（Repository 接口）
 - `datetime.UTC` 常量（时间处理）
 - PEP 604 联合类型语法 `int | None`
+- PEP 649 延迟注解求值 —— 领域层存在大量跨模块前向引用（如 `Reader` 与 `BorrowCard` 互相引用），3.14 的注解求值语义更安全（代码中仍显式保留 `from __future__ import annotations`，以保持静态检查与运行期行为一致）
+
+> **版本由 uv 固定**：`backend/pyproject.toml` 声明 `requires-python = ">=3.14"`，
+> `uv.lock` 锁定解释器与全部依赖版本，保证任何机器上 `uv sync` 得到一致环境。
+
+### 5.4 后端依赖管理与构建（uv）
+
+| 项 | 约定 |
+|---|---|
+| 依赖清单 | `backend/pyproject.toml`（`dependencies` 为运行时，`dependency-groups.dev` 为测试） |
+| 锁文件 | `backend/uv.lock`（**提交到 Git**，保证可复现） |
+| 虚拟环境 | `backend/.venv`（**不提交**，由 `uv sync` 重建） |
+| 初始化 | `uv sync` |
+| 运行测试 | `uv run pytest` |
+| 启动服务 | `uv run uvicorn app.main:app --reload` |
+| 初始化数据库 | `uv run python scripts/init_db.py --admin-password <密码>` |
+
+**为什么用 uv 而非 `requirements.txt` + `venv`**：① 能直接安装并固定 Python 解释器版本（本项目需 3.14）；② 锁文件覆盖传递依赖，避免"在我机器上能跑"；③ 解析与安装速度显著更快。
+
+### 5.5 前端包管理（pnpm）
+
+实验二**不含前端实现环节**（实验步骤清单与最终验收均以 API 可用性为准），故本节只确立约定：
+
+| 项 | 约定 |
+|---|---|
+| 包管理器 | **pnpm**（不使用 npm / yarn） |
+| 依赖清单 | `frontend/package.json`，锁文件 `frontend/pnpm-lock.yaml`（提交到 Git） |
+| 安装 | `pnpm install` |
+| 开发 | `pnpm dev` |
+| 构建 | `pnpm build` |
+| 测试 | `pnpm test` |
+
+**为什么用 pnpm**：`node_modules` 采用内容寻址硬链接，多项目共享同一份包副本；且默认**不**把未声明的依赖提升到顶层，可避免幽灵依赖（phantom dependency）——这对一个强调分层与依赖纪律的项目是恰当的约束。
 
 ### 5.3 数据库选型说明
 
@@ -715,9 +750,12 @@ expr_proj/
     ├── scripts/
     │   └── init_db.py              # 初始化规则 + 首个系统管理员
     ├── tests/
-    │   ├── unit/                   # 领域层单测（不依赖 DB）
-    │   └── integration/            # API 端到端测试
-    ├── requirements.txt
+    │   ├── conftest.py             # 共享夹具（内存库、鉴权辅助）
+    │   ├── unit/                   # 领域层单测（不依赖 DB 与 Web 框架）
+    │   └── integration/            # API 端到端测试 + 分层约束校验
+    ├── pyproject.toml              # 依赖清单 + pytest/ruff 配置（uv 使用）
+    ├── uv.lock                     # 锁文件（提交 Git，保证可复现）
+    ├── .python-version             # uv 固定的解释器版本
     └── README.md
 ```
 
@@ -898,3 +936,5 @@ expr_proj/
 | 版本 | 日期 | 变更内容 | 变更人 |
 |---|---|---|---|
 | v1.0 | 2026-09-19 | 初版制定。四层架构、MVC 映射、模式位置、技术选型、6 类横切关注点、部署视图、目录结构、4 个关键流程落点、8 条 ADR。 | Agent 起草 |
+| v1.1 | 2026-09-20 | §6.2 异常→HTTP 映射表补注：**本表是层级通用约定，具体接口的状态码与错误码以 `02` 各 FR 的验收标准为准**（FR-016 把借书业务规则失败规定为 400 而非本表的 409）。该冲突在编写 `14-api-spec.md` 时通过交叉核对发现。 | Agent 实现时发现并修订 |
+| v1.2 | 2026-09-20 | 按用户决定更新技术栈：① §5.1 Python 版本 3.11+ → **3.14+**，密码库去 passlib 直接使用 bcrypt（passlib 已停止维护），新增 **uv**（后端依赖管理）与 **pnpm**（前端包管理）两行；② §5.2 补充 3.14 的选型理由（PEP 649 延迟注解）；③ 新增 §5.4「后端依赖管理与构建（uv）」与 §5.5「前端包管理（pnpm）」两节；④ §8 目录结构更新（`requirements.txt` → `pyproject.toml` + `uv.lock` + `.python-version`，测试目录补 `conftest.py` 与分层校验）。 | 用户决定，Agent 落档 |

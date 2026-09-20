@@ -23,13 +23,20 @@
 
 ### 0.2 分层红线（每个任务都必须自检）
 
-| 编号 | 红线 | 自检命令 |
+**这些约束已被自动化**——`tests/integration/test_layering.py` 用 `ast` 解析真实 import 语句逐条校验，
+无需人工 grep（用字符串匹配会把 docstring 里对约束的说明误判为违规）。
+
+| 编号 | 红线 | 自动化断言 |
 |---|---|---|
-| R-1 | `presentation/` 不得依赖 `infrastructure/` | `grep -rn "infrastructure" backend/app/presentation/` → 0 命中 |
-| R-2 | `application/` 不得依赖 `infrastructure/` 具体类 | `grep -rn "from app.infrastructure" backend/app/application/` → 0 命中 |
-| R-3 | `domain/` 不得依赖任何框架或其他层 | `grep -rn "fastapi\|sqlalchemy\|app.application\|app.infrastructure" backend/app/domain/` → 0 命中 |
-| D-7 | `entities/` 不得依赖 `domain_services/` 与 `factories/` | `grep -rn "domain_services\|factories" backend/app/domain/entities/` → 0 命中 |
-| BR-049 | `policies/` 不得硬编码规则数值 | `grep -rn "== 5\|== 10\|== 15\|== 20\|0\.2\|0\.5\|1\.0" backend/app/domain/policies/` → 0 命中 |
+| R-1 | `presentation/routers/` 不得依赖 `infrastructure/` | `test_routers_do_not_import_infrastructure` |
+| R-1b | 表现层只有 `dependencies.py` 可依赖 `infrastructure/`（装配点） | `test_presentation_infrastructure_imports_are_confined_to_dependencies` |
+| R-2 | `application/` 不得依赖 `infrastructure/` 具体类 | `test_application_does_not_import_infrastructure` |
+| R-2b | 应用服务必须经 `application/ports/` 的 Protocol | `test_application_services_depend_on_ports` |
+| R-3 | `domain/` 零框架依赖，只允许标准库与本包 | `test_domain_imports_no_framework_or_outer_layer`、`test_domain_imports_are_stdlib_or_domain_only` |
+| D-7 | `entities/` 不得依赖 `domain_services/` 与 `factories/` | `test_entities_do_not_depend_on_services_or_factories` |
+| BR-049 | `policies/` 与 `domain_services/` 不得硬编码规则数值 | `test_policies_have_no_rule_literals`、`test_domain_services_have_no_rule_literals` |
+
+一键执行：`uv run pytest tests/integration/test_layering.py`
 
 ### 0.3 任务依赖图
 
@@ -70,7 +77,7 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 | **输入规格** | `07-architecture.md` §8（目录结构）、§5（技术选型） |
 | **允许修改** | `backend/**`（全部新建） |
 | **禁止修改** | `specs/**`、`frontend/**` |
-| **实现要求** | 1. 创建 `app/{presentation,application,domain,infrastructure}` 四层目录及 `__init__.py`；2. 建立各层子包（routers/schemas、services/ports、entities/value\_objects/enums/domain\_services/policies/factories、db/models/repositories/mappers/security）；3. 实现 `main.py`：创建 FastAPI 实例、注册全局异常处理器占位、配置 CORS；4. 提供 `GET /api/health` 健康检查；5. 编写 `requirements.txt`（fastapi、uvicorn、sqlalchemy、pydantic、python-jose 或 pyjwt、bcrypt、pytest、httpx）；6. **不实现任何业务接口** |
+| **实现要求** | 1. 创建 `app/{presentation,application,domain,infrastructure}` 四层目录及 `__init__.py`；2. 建立各层子包（routers/schemas、services/ports、entities/value\_objects/enums/domain\_services/policies/factories、db/models/repositories/mappers/security）；3. 实现 `main.py`：创建 FastAPI 实例、注册全局异常处理器占位、配置 CORS；4. 提供 `GET /api/health` 健康检查；5. 用 **uv** 建立依赖清单：`pyproject.toml`（`dependencies`：fastapi、uvicorn、sqlalchemy、pydantic、pyjwt、bcrypt；`dependency-groups.dev`：pytest、httpx）+ `uv sync` 生成 `uv.lock`；**不使用 `requirements.txt`**；6. 写入 `.python-version`（`3.14`）；7. **不实现任何业务接口** |
 | **验收标准** | ① `uvicorn app.main:app` 可启动；② `GET /api/health` 返回 200；③ 目录结构与 `07` §8 逐项对应；④ 无业务逻辑代码 |
 | **建议测试** | `tests/integration/test_health.py`：断言健康检查返回 200 |
 
@@ -99,7 +106,7 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 | **允许修改** | `backend/app/domain/entities/**`、`backend/app/domain/factories/**`、`backend/tests/unit/**` |
 | **禁止修改** | `backend/app/domain/domain_services/**`、`specs/**` |
 | **实现要求** | 1. **不得使用 SQLAlchemy 注释或 `Column()`**——领域实体是纯 Python 类（R-3、ADR-05）；2. `Reader`（抽象）与 `StudentReader`/`TeacherReader` 覆写 `borrow_limit(policy)`/`borrow_days(policy)`，**数值全部委托给 `BorrowPolicy` 查询**，不得硬编码；3. `LibraryItem`（抽象）与 `Book`/`Magazine`/`Thesis`，状态机方法 `mark_borrowed`/`mark_returned(has_reservation)`/`mark_reserved`/`mark_lost`/`mark_damaged`/`remove` 须拒绝非法流转；4. `BorrowCard` 状态机 `issue`/`cancel`/`restore`/`suspend`/`resume` 守卫状态，**禁止外部直接改 `status`**；5. `Loan`：`create`（快照 `due_at`）、`is_overdue`、`overdue_days`、`can_renew`、`renew`、`return_item`；6. `Reservation`：`create`/`mark_ready`/`cancel`/`expire`/`is_expired`；7. `FineRecord`：`create`（**快照 `unit_price`**）/`pay`/`is_unpaid`，含 `operator_role` 字段；8. `BorrowPolicy`/`FineRule` 为策略对象（见 TASK-007/008，此处仅定义接口引用）；9. `ReaderFactory`/`LibraryItemFactory` 按类型枚举分派创建子类 |
-| **验收标准** | ① 14 个实体齐备；② `grep -rn "sqlalchemy" backend/app/domain/entities/` → 0 命中；③ 非法状态流转抛领域异常；④ `Loan.create` 后修改 `BorrowPolicy` 不影响已有 `due_at`；⑤ 实体不调用领域服务（D-7） |
+| **验收标准** | ① 14 个实体齐备；② 领域层零框架依赖（由 `test_domain_imports_no_framework_or_outer_layer` 自动校验）；③ 非法状态流转抛领域异常；④ `Loan.create` 后修改 `BorrowPolicy` 不影响已有 `due_at`；⑤ 实体不调用领域服务（D-7） |
 | **建议测试** | `tests/unit/test_entities.py`：借阅证状态机、副本状态机、`Loan` 超期计算与续借边界、`Reservation` 失效判定 |
 
 ---
@@ -127,7 +134,7 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 | **允许修改** | `backend/app/application/ports/**`、`backend/app/infrastructure/repositories/**` |
 | **禁止修改** | `backend/app/domain/**`、`backend/app/application/services/**`、`specs/**` |
 | **实现要求** | 1. 接口用 `typing.Protocol` 定义在 `application/ports/`，**返回领域实体而非 ORM 模型**；2. 实现类 `SqlAlchemy*Repository` 位于 `infrastructure/repositories/`，内部使用对应 Mapper；3. **Repository 只负责持久化**：不做业务判定、不提交事务；4. 必须提供的方法（至少）：`ReaderRepository.find_by_id` / `find_by_username` / `add` / `update`；`CardRepository.find_by_card_no` / `find_active_by_reader` / `next_sequence` / `add` / `update`；`CatalogRepository.find_by_barcode` / `find_title_by_id` / `find_titles` / `add_title` / `add_item` / `update_item` / `next_barcode_sequence` / `collection_stats`；`LoanRepository.find_active_by_item` / `find_active_by_reader` / `find_by_reader` / `add` / `update`；`ReservationRepository.find_active_by_title` / `find_active_by_reader` / `add` / `update`；`FineRepository.find_unpaid_by_reader` / `find_by_id` / `add` / `update`；`PolicyRepository.get_borrow_policy` / `get_fine_rule` / `list_borrow_policies` / `list_fine_rules` / `update_borrow_policy` / `update_fine_rule`；5. **软删除过滤**：查询默认排除 `is_deleted = 1` 的记录（BR-037） |
-| **验收标准** | ① 7 个 Protocol + 7 个实现类齐备；② 接口签名无 SQLAlchemy 类型泄漏（不出现 `Session`、`Model`）；③ `grep -rn "from app.infrastructure" backend/app/application/` → 0 命中（R-2） |
+| **验收标准** | ① 7 个 Protocol + 7 个实现类齐备；② 接口签名无 SQLAlchemy 类型泄漏（不出现 `Session`、`Model`）；③ `test_application_does_not_import_infrastructure` 通过（R-2） |
 | **建议测试** | `tests/integration/test_repositories.py`：CRUD 往返、软删除过滤、`next_sequence` 并发递增 |
 
 ---
@@ -141,7 +148,7 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 | **允许修改** | `backend/app/domain/domain_services/**`、`backend/app/domain/exceptions.py`、`backend/tests/unit/**` |
 | **禁止修改** | `backend/app/domain/entities/**`、`specs/**` |
 | **实现要求** | 1. `BorrowEligibilityService` **纯函数式**——只判定、不改状态、不访问数据库；`check_eligibility` 按**固定顺序**「借阅证 → 数量 → 超期 → 罚款 → 副本」执行，**遇首个失败即返回**，不累积错误；2. `check_quota` 的额度口径 = **未归还借阅 + 有效预约**（BR-007）；3. `RenewalService.can_renew` 判定「未超期」且「`renew_count` < 2」且「未超额」；**存在预约不影响续借**（BR-018）；4. `ReservationQueueService`：`enqueue`（上限 5 人）、`peek`、`position_of`、`dequeue_expired`、`can_reserve`（含重复校验与可借性校验）；5. 队列排序**按 `created_at` 升序**，不得用自增主键；6. 领域异常定义在 `domain/exceptions.py`（`NotFoundError`、`ValidationError`、`BusinessRuleError`、`ConflictError`），携带 `code`、`message`、`http_status` |
-| **验收标准** | ① 校验顺序可被单测断言（构造多个失败条件时返回**第一个**错误）；② 领域服务不修改传入实体状态；③ `grep -rn "domain_services\|factories" backend/app/domain/entities/` → 0 命中（D-7） |
+| **验收标准** | ① 校验顺序可被单测断言（构造多个失败条件时返回**第一个**错误）；② 领域服务不修改传入实体状态；③ `test_entities_do_not_depend_on_services_or_factories` 通过（D-7） |
 | **建议测试** | `tests/unit/test_domain_services.py`：六项校验顺序、额度口径含预约、续借边界、队列排序与上限 |
 
 ---
@@ -155,7 +162,7 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 | **允许修改** | `backend/app/domain/policies/borrow_policy.py`、`backend/tests/unit/test_borrow_policy.py`、`backend/scripts/init_db.py`（种子数据部分） |
 | **禁止修改** | `specs/**` |
 | **实现要求** | 1. 提供 `limit_for(reader_type) -> int`、`days_for(reader_type) -> int`、`update(max_count, days, operator)`；2. **规则数值不得硬编码在代码中**——`BorrowPolicy` 从注入的数据（Repository 读出）构造，查表返回；3. 支持：`COLLEGE` 5 册/30 天、`UNDERGRADUATE` 5 册/30 天、`GRADUATE` 10 册/60 天、`DOCTOR` 15 册/90 天、`TEACHER` 20 册/90 天；4. 种子数据写入 `scripts/init_db.py`（这些是**数据**，不是代码分支，允许出现在脚本中）；5. `update` 记录 `updated_at` 与 `updated_by` |
-| **验收标准** | ① 5 种类型查询值正确；② `grep -rn "== 5\|== 10\|== 15\|== 20" backend/app/domain/policies/` → 0 命中；③ 在线修改后新借阅按新规则计算，已有 `Loan.due_at` 不变（BR-050） |
+| **验收标准** | ① 5 种类型查询值正确；② `test_policies_have_no_rule_literals` 通过；③ 在线修改后新借阅按新规则计算，已有 `Loan.due_at` 不变（BR-050） |
 | **建议测试** | `tests/unit/test_borrow_policy.py`：5 种类型查表、未知类型报错、`update` 后查询值变化 |
 
 ---
@@ -310,7 +317,7 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 | **禁止修改** | `backend/app/**`（若发现代码问题，**回到对应任务修复**）、`specs/**` |
 | **实现要求** | 1. 对照 `15-test-plan.md` 逐条核对覆盖情况，列出已覆盖与未覆盖清单；2. 补充未覆盖用例（含 TC-020b 单元测试组）；3. 执行 `15` §5 的 5 项通过标准；4. 连续两次全量运行验证可重复性；5. 输出测试覆盖分析报告 |
 | **验收标准** | ① 36 个测试用例全部实现且通过；② 5 项通过标准全绿；③ 两次运行结果一致；④ 输出覆盖分析 |
-| **建议测试** | `pytest -v`；分层检查命令见 §0.2 |
+| **建议测试** | `uv run pytest`；分层检查见 §0.2（已自动化） |
 
 ---
 
@@ -337,11 +344,11 @@ TASK-008 罚款规则策略 ──┴─→ TASK-009 账号与认证          �
 ## 附录 B：每个任务完成后的固定动作
 
 ```bash
-# 1. 跑测试
-cd backend && pytest -v
+# 1. 跑全量测试
+cd backend && uv run pytest -q
 
-# 2. 跑分层红线检查（§0.2）
-grep -rn "fastapi\|sqlalchemy" backend/app/domain/ && echo "❌ 违规" || echo "✅ 通过"
+# 2. 跑分层与规格约束校验（§0.2，已自动化）
+uv run pytest tests/integration/test_layering.py -q
 
 # 3. 确认未触碰规格
 git status --short specs/     # 期望：无输出
@@ -350,6 +357,48 @@ git status --short specs/     # 期望：无输出
 git add backend/
 git commit -m "feat: complete TASK-0XX <英文描述>"
 ```
+
+---
+
+## 附录 C：实现结果对照（实测）
+
+> 本节记录 18 个任务的实际完成情况，便于人工审查时核对"规格声明的"与"实际交付的"。
+
+| TASK | 交付物 | 状态 |
+|:---:|---|---|
+| 001 | `pyproject.toml` + `uv.lock` + `.python-version`（Python 3.14）+ 四层骨架 + `/api/health` | ✅ |
+| 002 | 7 枚举 + 5 值对象（`Money` 用 `Decimal`） | ✅ |
+| 003 | 14 实体 + 2 工厂（纯 Python，无 ORM 注释） | ✅ |
+| 004 | 11 张表 ORM + `MoneyType`（TEXT）+ 3 个部分唯一索引 + 7 个 Mapper | ✅ |
+| 005 | 7 个 Port（Protocol）+ 7 个 SQLAlchemy 实现 | ✅ |
+| 006 | 3 个领域服务（`BorrowEligibilityService` 顺序固定且惰性求值） | ✅ |
+| 007 | `BorrowPolicy`（查表，无硬编码） | ✅ |
+| 008 | `FineRule`（宽限 + 封顶 + `Decimal`） | ✅ |
+| 009 | `AuthService` + `auth_router`（bcrypt + JWT 24h） | ✅ |
+| 010 | `CardService` + `card_router`（状态机 + 部分唯一索引） | ✅ |
+| 011 | `CatalogService` + `catalog_router`（单表继承 + ISBN 部分唯一） | ✅ |
+| 012 | 借书（六项校验固定顺序 + 事务回滚） | ✅ |
+| 013 | 还书 + 罚款 + 收缴 + 预约交接（四表同事务） | ✅ |
+| 014 | 续借（含 BR-018「预约不阻碍续借」） | ✅ |
+| 015 | 预约（队列上限 / 重复 / 可借性 / 交接） | ✅ |
+| 016 | 查询（四段结构 + 派生超期 + 字段裁剪） | ✅ |
+| 017 | 权限守卫 + 规则维护 + 全局异常处理器 | ✅ |
+| 018 | 376 个测试全绿；分层与规格约束由 `test_layering.py` 自动校验 | ✅ |
+
+**实测数据**：`uv run pytest -q` → **376 passed**；连续两次运行结果一致；
+`tests/integration/test_layering.py` → 20 passed。
+
+### 与规格的偏差记录（实现阶段发现）
+
+| # | 问题 | 处理 |
+|:---:|---|---|
+| 1 | `loans.librarian_id NOT NULL` 外键指向 `librarians`，但 BR-040 允许系统管理员代行借还 | 改为可空并披露代价（`13` §4.7 v1.4） |
+| 2 | `fine_records.operator_role` 取值 `'ADMIN'` 与系统其余角色码 `'SYSTEM_ADMIN'` 不一致 | 统一为 `SYSTEM_ADMIN`（`13` §4.9 v1.3） |
+| 3 | 多处规则引用 `BR-042`（实为权限校验规则）指向"题录删除联动副本" | 更正为 `FR-011 验收标准 3/4`（`06` §9.2、`13` §4.6） |
+| 4 | `07` §6.2 的异常→HTTP 映射（业务规则 409）与 FR-016 的 400 冲突 | 明确"以 FR 为准"，并在 `07`/`09`/`14` 三处加注 |
+| 5 | `application/services/auth_service.py` 直接 import `infrastructure.security`，违反 R-2 | 新增 `application/ports/security.py`（`PasswordHasher` / `TokenIssuer`）+ 适配器，改为依赖注入 |
+| 6 | `check_unpaid_fine` 用 `sum()` 累加字符串导致 `TypeError` | 改为 `Money` 累加 |
+| 7 | `check_and_raise` 先算全部校验再筛选，与"遇首个失败即返回"不符 | 改为按序**惰性**求值 |
 
 ---
 
