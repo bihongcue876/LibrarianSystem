@@ -17,9 +17,18 @@ DEFAULT_DB_FILENAME = "library.db"
 
 
 def _default_url() -> str:
+    """构造默认 SQLite 连接串。
+
+    **路径必须规范化为正斜杠**：本项目工作区路径含中文与全角冒号
+    （`D:\\我的文件：D盘\\...`），反斜杠与 POSIX 风格路径（`/d/...`）
+    都会让 SQLite 报 `unable to open database file`。
+    故统一用 `Path.as_posix()` 转成 `D:/...` 形态。
+    """
     base_dir = Path(__file__).resolve().parents[3]  # backend/
-    db_path = os.environ.get("LIBRARY_DB_PATH", str(base_dir / DEFAULT_DB_FILENAME))
-    return f"sqlite:///{db_path}"
+    raw = os.environ.get("LIBRARY_DB_PATH")
+    db_path = Path(raw).resolve() if raw else (base_dir / DEFAULT_DB_FILENAME).resolve()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{db_path.as_posix()}"
 
 
 DATABASE_URL = os.environ.get("LIBRARY_DATABASE_URL") or _default_url()

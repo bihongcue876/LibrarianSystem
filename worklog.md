@@ -732,7 +732,7 @@
   5. 应用层：7 应用服务 + 9 个 Port + UnitOfWork + 异常体系
   6. 表现层：7 路由 + 7 组 DTO + 鉴权守卫 + 序列化辅助
   7. `scripts/init_db.py`：建表 + 播种 5+5 条规则 + 创建首个系统管理员（密码必须命令行传入）
-- **产出**：`backend/` 62 个文件
+- **产出**：`backend/` 128 个 Python 文件（业务代码 88 个 + `__init__.py` 20 个 + 脚本 2 个 + 测试 18 个）
 - **实现中发现并修复的问题 7 项**：
   1. `loans.librarian_id NOT NULL` 外键指向 `librarians`，但 BR-040 允许系统管理员代行借还 → 改为可空并披露代价
   2. `fine_records.operator_role` 取值 `'ADMIN'` 与系统其余角色码不一致 → 统一为 `'SYSTEM_ADMIN'`
@@ -753,7 +753,7 @@
   2. 用独立内存 SQLite 库隔离每个测试；覆盖 `get_session` 依赖把应用指向测试库
   3. 新增 `integration/test_layering.py`：**把架构约束变成可回归的测试**（`ast` 校验依赖方向、规则数值不硬编码、表数 = 11、三个部分唯一索引、金额列为 TEXT）
   4. 测试中发现并修复 3 处问题（见步骤 22 的第 3、4、5 项）
-- **产出**：`backend/tests/` 16 个文件
+- **产出**：`backend/tests/` 18 个 Python 文件（含 `conftest.py`）；其中测试用例文件 17 个
 - **实测结果**：**376 passed**，连续两次运行一致（约 30 s）
 - **状态**：✅ 完成
 
