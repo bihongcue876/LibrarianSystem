@@ -841,3 +841,28 @@
 - **状态**：✅ 完成
 
 ---
+
+### 步骤 28：文档重组（README 精简 + 新增 DEVELOPMENT.md）+ 文档断言全面实机核对
+
+**用户要求**：README 只保留简介与启动方式，详细内容另立文档；其余成分也照文档做基本检查。
+
+- **核对范围与结果**（全部实机执行）：
+  1. `init_db.py`：backend 目录 / 仓库根 `--project` 两种调用、幂等重跑、缺 `--admin-password` 报错（exit 2）—— 全过
+  2. 四个 pytest 入口：`run-tests.ps1`（含 `-Scope layering`、`-Scope unit -Keyword money`、`-NoUv`、从外部目录调用）、仓库根 `uv run --project backend pytest -q`、backend 目录 `uv run pytest -q`、`backend\.venv\Scripts\pytest.exe -q` —— 全部 **376 passed**（约 13 s）
+  3. 前端：`pnpm install`（已最新）/ `typecheck`（0 错误）/ `build`（58 modules，gzip 78.26 kB）—— 全过
+  4. 前后端真实联调：后端 8000 + Vite 5173 同时起，经代理验证 health / books（总数 11 条真实数据）/ 错误密码登录 401 —— 全通
+  5. 四个 `LIBRARY_*` 环境变量均被代码真实读取，默认值与文档一致；`.vscode` 解释器路径存在；pytest 9.1.1 / Python 3.14.4；specs 共 21 个文件
+- **发现并修正的 5 处文档失实**：
+  1. **前端访问地址说反了**：Vite 默认监听 `localhost`，Node 优先解析为 IPv6 `::1`，实测 `127.0.0.1:5173` 连接被拒、仅 `localhost` 可用（后端相反：uvicorn 只绑 IPv4 `127.0.0.1:8000`）
+  2. **curl 片段在 PowerShell 不可用**：PS 5.1 中 `curl` 是 `Invoke-WebRequest` 别名（实测 CommandType=Alias），`$(...)` 也不生效 → 标注 bash 专用并补 PowerShell 原生写法
+  3. **接口表缺 10 余条、路径参数简写失实**：实际 36 条路由；真实参数名 `{loan_id}` / `{fine_id}` / `{reader_id}` / `{reservation_id}`，照抄 `{id}` 会 404（AST 解析 7 个 router + 运行时 OpenAPI 交叉核对）
+  4. 测试耗时「21~35 s」→ 实测约 13 s
+  5. UML 图数口径：列出的 24 张无误，但全仓库 mermaid 块为 25（`18-review-checklist.md` 另有 1 张）
+- **顺带确认的可用性限制**：后端鉴权是普通 `Depends` 依赖，未声明 OpenAPI `securitySchemes` → Swagger UI **没有 Authorize 按钮**，需登录的接口在 `/docs` 里无法直接试
+- **产物**：
+  - `README.md` 精简为：简介 / 技术栈 / 目录结构 / 启动方式（后端 / 前端 / 测试）/ 更多文档索引
+  - 新建 `DEVELOPMENT.md`：环境准备、初始化、启动（含"为什么是 uvicorn"）、环境变量、测试四入口、架构与分层约束、完整目录、36 条接口全表、双 shell 快速体验、UML、联调记录、Agent 说明、已知限制、**文档自检记录**
+- **遗留可选改进**（未动代码，见 `DEVELOPMENT.md` §14）：vite `server.host` 显式化、声明 securitySchemes、run-tests.ps1 控制台 UTF-8、补「重置管理员密码」脚本
+- **状态**：✅ 完成
+
+---
