@@ -49,6 +49,19 @@ uv run python scripts/init_db.py --admin-username admin --admin-name "系统管�
 | 缺 `--admin-password` 会清晰报错 | argparse `error: the following arguments are required: --admin-password`，exit code 2 |
 | **不会重置已存在账号的密码** | 同名管理员直接 `[SKIP]`。忘记密码时重跑初始化**无效**，需改库中 `password_hash` 或换用户名 |
 
+### 2.1 默认书目（可选，独立脚本）
+
+`init_db.py` 只建结构、写规则、建管理员，**不**预置藏书。需要一组默认书目用于演示或联调时，运行独立脚本：
+
+```powershell
+uv run python scripts/seed_catalog.py                 # 读 backend/data/default_catalog.json
+uv run python scripts/seed_catalog.py --data <路径>   # 指定数据文件
+```
+
+- 书目属于**数据**，放在 `backend/data/default_catalog.json`：约 10 个题录，覆盖五种 `item_type`（中/外文图书、中/外文期刊、学位论文）；每个题录预置副本，条码自 `BC00000001` 起，初始状态 `AVAILABLE`。
+- 脚本**幂等**：同名活跃题录已存在则跳过；题录下已有副本则不再补。可安全重跑。
+- `created_by` 取库中首个系统管理员；若库中尚无管理员则为 NULL（建议先执行 `init_db.py`）。
+
 ---
 
 ## 3. 启动服务
@@ -325,7 +338,11 @@ expr_proj/
 │   │       ├── mappers/         # ORM ↔ 领域对象转换
 │   │       ├── repositories/    # 7 个 Repository 实现
 │   │       └── security/        # bcrypt、JWT、适配器
-│   ├── scripts/init_db.py       # 建表 + 播种规则 + 创建首个系统管理员
+│   ├── scripts/
+│   │   ├── init_db.py           # 建表 + 播种规则 + 创建首个系统管理员
+│   │   └── seed_catalog.py      # 可选：从 data/ 读取默认书目入库
+│   ├── data/
+│   │   └── default_catalog.json # 默认书目数据（题录 + 馆藏副本）
 │   ├── tests/
 │   │   ├── conftest.py          # 共享夹具
 │   │   ├── unit/                # 领域层单测（不依赖 DB 与 Web 框架）

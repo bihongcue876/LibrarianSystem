@@ -59,6 +59,7 @@ expr_proj/
 cd backend
 uv sync                                                                          # 首次：安装 Python 3.14 并同步依赖
 uv run python scripts/init_db.py --admin-username admin --admin-password <密码>   # 首次：建表 + 播种规则 + 创建管理员
+uv run python scripts/seed_catalog.py                                           # 可选：播种默认书目（题录 + 馆藏副本）
 uv run uvicorn app.main:app --reload --port 8000                                # 启动
 ```
 

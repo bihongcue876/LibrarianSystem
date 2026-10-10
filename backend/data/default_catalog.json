@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "description": "默认书目种子：约 10 个题录，覆盖全部 5 种 item_type；每个题录预置副本。由 scripts/seed_catalog.py 读取入库（D-48、specs/13 §7）。",
+  "defaults": {
+    "copies": 2,
+    "acquired_at": "2024-09-01"
+  },
+  "titles": [
+    {
+      "title": "软件体系结构：构件、模式与分析",
+      "author": "覃征等",
+      "isbn": "9787302515791",
+      "publisher": "清华大学出版社",
+      "publish_year": 2018,
+      "item_type": "CHINESE_BOOK",
+      "language": "中文",
+      "price": "59.00"
+    },
+    {
+      "title": "算法（第4版）",
+      "author": "塞奇威克",
+      "isbn": "9787111544937",
+      "publisher": "机械工业出版社",
+      "publish_year": 2012,
+      "item_type": "CHINESE_BOOK",
+      "language": "中文",
+      "price": "99.00"
+    },
+    {
+      "title": "算法导论（第3版）",
+      "author": "Cormen 等",
+      "isbn": "9780262033848",
+      "publisher": "MIT Press",
+      "publish_year": 2009,
+      "item_type": "FOREIGN_BOOK",
+      "language": "英文",
+      "price": "128.00"
+    },
+    {
+      "title": "深入理解计算机系统（第3版）",
+      "author": "Bryant & O'Hallaron",
+      "isbn": "9780134092669",
+      "publisher": "Pearson",
+      "publish_year": 2015,
+      "item_type": "FOREIGN_BOOK",
+      "language": "英文",
+      "price": "139.00"
+    },
+    {
+      "title": "数据库系统概念（第6版）",
+      "author": "Silberschatz 等",
+      "isbn": "9780078022159",
+      "publisher": "McGraw-Hill",
+      "publish_year": 2010,
+      "item_type": "FOREIGN_BOOK",
+      "language": "英文",
+      "price": "108.00"
+    },
+    {
+      "title": "中国国家地理",
+      "publisher": "中国国家地理杂志社",
+      "publish_year": 2024,
+      "item_type": "CHINESE_MAGAZINE",
+      "language": "中文",
+      "price": "20.00"
+    },
+    {
+      "title": "三联生活周刊",
+      "publisher": "生活·读书·新知三联书店",
+      "publish_year": 2024,
+      "item_type": "CHINESE_MAGAZINE",
+      "language": "中文",
+      "price": "15.00"
+    },
+    {
+      "title": "Nature",
+      "publisher": "Springer Nature",
+      "publish_year": 2024,
+      "item_type": "FOREIGN_MAGAZINE",
+      "language": "英文",
+      "price": "60.00"
+    },
+    {
+      "title": "Science",
+      "publisher": "American Association for the Advancement of Science",
+      "publish_year": 2024,
+      "item_type": "FOREIGN_MAGAZINE",
+      "language": "英文",
+      "price": "60.00"
+    },
+    {
+      "title": "基于深度学习的图像识别方法研究",
+      "author": "张伟",
+      "publish_year": 2023,
+      "item_type": "THESIS",
+      "language": "中文"
+    }
+  ]
+}

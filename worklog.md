@@ -882,3 +882,12 @@
 - 后端冗余清理（pyflakes 清零）：删除 `count_active_by_title` 端口+实现（零调用零测试）、12 处未用导入（`timezone`/`field`/`CardStatus`/`Iterator`/`Librarian`/`func`/`ItemType`/`ReaderType` 等，clock.py 收敛后的残留）
 - 前端冗余清理：`types.ts` 删除 `ItemStatus`/`ItemType`/`ReaderFinesResponse`/`ApiErrorBody` 四个未用类型、4 个内部类型收敛为非导出；`client.ts` 的 `describeValidationError` 转私有
 - 验证：pyflakes 0 警告、pytest 376 全绿、tsc 零错误、vite build 成功
+
+## 2026-10-10 默认书目独立化（外置数据文件 + 播种脚本）
+
+- 需求：默认书目不应写进 `init_db.py`（最小初始化只建表 + 规则 + 管理员），应作为**数据库数据**由**独立脚本**加载
+- 新增 `backend/data/default_catalog.json`：约 10 个题录（覆盖五种 `item_type`）+ 默认副本数与入库日期
+- 新增 `backend/scripts/seed_catalog.py`：读取数据文件，幂等写入内置数据库；题录按同名活跃去重、副本按题录下是否已有副本判断；条码接续 `BC` + 8 位序号；`created_by` 取首个管理员（无则 NULL）；全 ASCII 输出
+- `init_db.py` 保持原状（未改）：结构初始化和业务数据分离，实现与 D-48 / `13` §7 对齐
+- 同步：`README.md`（启动步骤加可选播种）、`DEVELOPMENT.md`（新增 §2.1 默认书目 + 目录树）
+- 验证：临时库 `init_db` → `seed_catalog` 得 10 题录 / 20 副本（全 `AVAILABLE`，条码 `BC00000001`~`BC00000020`），二跑 0 新增；无管理员时 `[WARN]` 且 `created_by` 为 NULL；pytest 376 全绿
