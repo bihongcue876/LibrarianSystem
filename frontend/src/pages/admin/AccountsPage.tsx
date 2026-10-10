@@ -15,7 +15,6 @@ import {
   Input,
   Modal,
   ReadonlyField,
-  Select,
   TableSkeleton,
 } from '@/components/ui'
 import { IconPlus, IconTrash, IconUser } from '@/components/icons'
@@ -24,12 +23,10 @@ import { authApi } from '@/api/endpoints'
 import { toMessage } from '@/api/client'
 import type { Account } from '@/api/types'
 
-const RESET_ROLE_OPTIONS = [
-  { value: 'READER', label: '读者' },
-  { value: 'LIBRARIAN', label: '图书管理员' },
-]
-
 const EMPTY_FORM = { username: '', password: '', name: '' }
+
+/** 与后端 `AddLibrarianRequest` 一致的客户端校验 */
+const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/
 
 export function AccountsPage() {
   const toast = useToast()
@@ -45,7 +42,7 @@ export function AccountsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null)
   const [resetTarget, setResetTarget] = useState<Account | null>(null)
-  const [resetForm, setResetForm] = useState({ new_password: '', role: 'LIBRARIAN' })
+  const [resetForm, setResetForm] = useState<{ new_password: string }>({ new_password: '' })
   const [acting, setActing] = useState(false)
 
   const load = useCallback(async () => {
@@ -67,6 +64,14 @@ export function AccountsPage() {
   const addLibrarian = async () => {
     if (!form.username.trim() || !form.password || !form.name.trim()) {
       toast.error('请填写完整信息', '用户名、密码与姓名为必填项')
+      return
+    }
+    if (!USERNAME_PATTERN.test(form.username.trim()) || form.username.trim().length < 3) {
+      toast.error('用户名格式不正确', '3~32 位，仅限字母、数字与下划线')
+      return
+    }
+    if (form.password.length < 6 || form.password.length > 24) {
+      toast.error('密码长度不正确', '长度须为 6~24 位')
       return
     }
     setSaving(true)
@@ -110,14 +115,11 @@ export function AccountsPage() {
     }
     setActing(true)
     try {
-      await authApi.resetPassword(
-        resetTarget.account_id,
-        resetForm.new_password,
-        resetForm.role as 'READER' | 'LIBRARIAN',
-      )
+      // 本页列表只包含馆员账号，重置目标固定为 LIBRARIAN 入口
+      await authApi.resetPassword(resetTarget.account_id, resetForm.new_password, 'LIBRARIAN')
       toast.success('密码已重置', `账号 ${resetTarget.username}，请告知本人新密码`)
       setResetTarget(null)
-      setResetForm({ new_password: '', role: 'LIBRARIAN' })
+      setResetForm({ new_password: '' })
     } catch (err) {
       toast.fromError(err, '重置失败')
     } finally {
@@ -218,7 +220,7 @@ export function AccountsPage() {
                           size="sm"
                           onClick={() => {
                             setResetTarget(lib)
-                            setResetForm({ new_password: '', role: 'LIBRARIAN' })
+                            setResetForm({ new_password: '' })
                           }}
                         >
                           重置密码
@@ -350,13 +352,7 @@ export function AccountsPage() {
               value={<span className="mono">#{resetTarget.account_id}</span>}
             />
 
-            <Field label="目标角色" required hint="三类账号可同名，须指明要重置哪个入口的账号">
-              <Select
-                value={resetForm.role}
-                onChange={(e) => setResetForm({ ...resetForm, role: e.target.value })}
-                options={RESET_ROLE_OPTIONS}
-              />
-            </Field>
+            <ReadonlyField label="目标角色" value="图书管理员（LIBRARIAN）" />
 
             <Field label="新密码" required hint="6~24 位，重置后请线下告知本人">
               <Input

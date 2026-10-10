@@ -55,6 +55,10 @@ export function CirculationPage() {
   const [borrowOpen, setBorrowOpen] = useState(false)
   const [borrowing, setBorrowing] = useState(false)
   const [borrowResult, setBorrowResult] = useState<BorrowBookResponse | null>(null)
+  /** 打开确认弹窗那一刻的卡号/条码快照——弹窗展示与提交都用它，避免输入框后续改动造成展示与实际借阅对象不一致 */
+  const [borrowSnapshot, setBorrowSnapshot] = useState<{ cardNo: string; barcode: string } | null>(
+    null,
+  )
 
   // ---- 还书 ----
   const [returnBarcode, setReturnBarcode] = useState('')
@@ -82,9 +86,13 @@ export function CirculationPage() {
   }
 
   const confirmBorrow = async () => {
+    if (!borrowSnapshot) return
     setBorrowing(true)
     try {
-      const result = await circulationApi.borrow(cardNo.trim(), borrowBarcode.trim())
+      const result = await circulationApi.borrow(
+        borrowSnapshot.cardNo,
+        borrowSnapshot.barcode,
+      )
       setBorrowResult(result)
       setBorrowOpen(false)
       setPrecheckResult(null)
@@ -125,6 +133,13 @@ export function CirculationPage() {
     setBorrowBarcode('')
     setPrecheckResult(null)
     setBorrowResult(null)
+    setBorrowSnapshot(null)
+  }
+
+  /** 打开确认弹窗并记录当时的输入快照，展示与提交都用快照值 */
+  const openBorrowModal = () => {
+    setBorrowSnapshot({ cardNo: cardNo.trim(), barcode: borrowBarcode.trim() })
+    setBorrowOpen(true)
   }
 
   return (
@@ -245,7 +260,7 @@ export function CirculationPage() {
               </div>
 
               {precheckResult.can_borrow && (
-                <Button variant="primary" block onClick={() => setBorrowOpen(true)}>
+                <Button variant="primary" block onClick={openBorrowModal}>
                   确认借出
                 </Button>
               )}
@@ -356,8 +371,14 @@ export function CirculationPage() {
         }
       >
         <div className="stack">
-          <ReadonlyField label="借阅证号" value={<span className="mono">{cardNo}</span>} />
-          <ReadonlyField label="馆藏条码" value={<span className="mono">{borrowBarcode}</span>} />
+          <ReadonlyField
+            label="借阅证号"
+            value={<span className="mono">{borrowSnapshot?.cardNo}</span>}
+          />
+          <ReadonlyField
+            label="馆藏条码"
+            value={<span className="mono">{borrowSnapshot?.barcode}</span>}
+          />
 
           {precheckResult?.reader && (
             <ReadonlyField label="读者" value={precheckResult.reader.name} />

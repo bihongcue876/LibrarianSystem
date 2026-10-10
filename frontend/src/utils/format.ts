@@ -52,8 +52,3 @@ export function toFixedString(value: string | number): string {
   if (Number.isNaN(num)) return '0.00'
   return num.toFixed(2)
 }
-
-/** 借阅额度占用描述 */
-export function quotaText(limit: number, occupied: number): string {
-  return `${occupied} / ${limit}`
-}

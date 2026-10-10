@@ -76,7 +76,8 @@ export function MyLoansPage() {
     }
   }
 
-  if (loading) {
+  // 刷新（手动点击/操作后 reload）不重置为 skeleton——已有数据时保持展示
+  if (loading && !data) {
     return (
       <div className="page">
         <Card flush>

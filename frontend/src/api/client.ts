@@ -57,6 +57,9 @@ export const accountStore = {
   set(account: unknown): void {
     localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account))
   },
+  clear(): void {
+    localStorage.removeItem(ACCOUNT_KEY)
+  },
 }
 
 /** 401 时的全局回调（由 AuthProvider 注册），用于清理登录态并跳回登录页 */
@@ -158,7 +161,7 @@ function defaultMessage(status: number): string {
  * 提取 422 校验错误的可读信息。
  * FastAPI 的 detail.errors 形如 `[{loc: ["body","card_no"], msg: "..."}]`
  */
-export function describeValidationError(error: ApiError): string {
+function describeValidationError(error: ApiError): string {
   const errors = (error.detail as { errors?: { loc?: unknown[]; msg?: string }[] }).errors
   if (!Array.isArray(errors) || errors.length === 0) return error.message
   return errors

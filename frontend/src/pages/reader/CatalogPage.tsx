@@ -5,7 +5,7 @@
  * 馆员/管理员可额外看到馆藏管理提示。
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Badge,
@@ -37,6 +37,13 @@ export function CatalogPage() {
   const [availableOnly, setAvailableOnly] = useState(false)
   const [page, setPage] = useState(1)
 
+  /** 关键词 300ms 防抖，避免每敲一个字符就请求一次 */
+  const [debouncedKeyword, setDebouncedKeyword] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedKeyword(keyword), 300)
+    return () => clearTimeout(timer)
+  }, [keyword])
+
   const [items, setItems] = useState<BookListItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -45,27 +52,33 @@ export function CatalogPage() {
   const [target, setTarget] = useState<BookListItem | null>(null)
   const [reserving, setReserving] = useState(false)
 
+  /** 请求序号守卫：慢的旧响应不允许覆盖新结果 */
+  const seqRef = useRef(0)
+
   const load = useCallback(async () => {
+    const seq = ++seqRef.current
     setLoading(true)
     setError(null)
     try {
       const data = await queryApi.searchBooks({
-        keyword: keyword.trim() || undefined,
+        keyword: debouncedKeyword.trim() || undefined,
         item_type: itemType || undefined,
         available_only: availableOnly || undefined,
         page,
         page_size: PAGE_SIZE,
       })
+      if (seq !== seqRef.current) return
       setItems(data.items)
       setTotal(data.total)
     } catch (err) {
+      if (seq !== seqRef.current) return
       setError(toMessage(err))
       setItems([])
       setTotal(0)
     } finally {
-      setLoading(false)
+      if (seq === seqRef.current) setLoading(false)
     }
-  }, [keyword, itemType, availableOnly, page])
+  }, [debouncedKeyword, itemType, availableOnly, page])
 
   useEffect(() => {
     void load()
@@ -74,7 +87,7 @@ export function CatalogPage() {
   // 条件变化时回到第一页
   useEffect(() => {
     setPage(1)
-  }, [keyword, itemType, availableOnly])
+  }, [debouncedKeyword, itemType, availableOnly])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
@@ -196,7 +209,7 @@ export function CatalogPage() {
                     <span
                       className="availability__dot"
                       style={{
-                        background: available ? 'var(--success-500)' : 'var(--danger-400, #f87171)',
+                        background: available ? 'var(--success-500)' : 'var(--danger-500)',
                       }}
                     />
                     {available ? `可借 ${book.available_items} 册` : '暂无可借副本'}

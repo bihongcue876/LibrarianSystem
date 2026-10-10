@@ -11,6 +11,7 @@ import { Alert, Button, Field, Input, Select } from '@/components/ui'
 import { useToast } from '@/components/Toast'
 import { IconBook, IconClock, IconSearch, IconSwap } from '@/components/icons'
 import { useAuth } from '@/auth/AuthContext'
+import { roleHome } from '@/auth/guards'
 import { authApi } from '@/api/endpoints'
 import { toMessage } from '@/api/client'
 import { READER_TYPES } from '@/api/types'
@@ -23,13 +24,6 @@ const ROLE_OPTIONS = [
   { value: 'LIBRARIAN', label: '图书管理员' },
   { value: 'SYSTEM_ADMIN', label: '系统管理员' },
 ] as const
-
-/** 登录后各角色的默认落地页 */
-const HOME: Record<Role, string> = {
-  READER: '/catalog',
-  LIBRARIAN: '/circulation',
-  SYSTEM_ADMIN: '/admin/stats',
-}
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -57,7 +51,7 @@ export function LoginPage() {
     try {
       const account = await login({ username: username.trim(), password, role })
       toast.success('登录成功', `欢迎回来，${account.name || account.username}`)
-      navigate(HOME[account.role] ?? '/catalog', { replace: true })
+      navigate(roleHome(account.role), { replace: true })
     } catch (err) {
       setError(toMessage(err))
     } finally {
@@ -173,7 +167,7 @@ export function LoginPage() {
             <button
               role="tab"
               className="auth-tab"
-              onClick={() => window.open('/docs', '_blank')}
+              onClick={() => window.open('/docs', '_blank', 'noopener,noreferrer')}
               title="打开后端接口文档"
             >
               API 文档

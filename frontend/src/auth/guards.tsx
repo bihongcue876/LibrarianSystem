@@ -5,10 +5,15 @@ import type { ReactNode } from 'react'
 import { useAuth } from '@/auth/AuthContext'
 import type { Role } from '@/api/types'
 
-const HOME: Record<Role, string> = {
+/** 各角色的默认落地页（全站唯一来源） */
+export const ROLE_HOME: Record<Role, string> = {
   READER: '/catalog',
   LIBRARIAN: '/circulation',
   SYSTEM_ADMIN: '/admin/stats',
+}
+
+export function roleHome(role: Role | undefined): string {
+  return (role && ROLE_HOME[role]) || '/catalog'
 }
 
 export function RequireAuth({ children, roles }: { children: ReactNode; roles?: Role[] }) {
@@ -31,7 +36,7 @@ export function RequireAuth({ children, roles }: { children: ReactNode; roles?: 
   }
 
   if (roles && !roles.includes(account.role)) {
-    return <Navigate to={HOME[account.role]} replace />
+    return <Navigate to={roleHome(account.role)} replace />
   }
 
   return <>{children}</>
@@ -42,6 +47,6 @@ export function RedirectIfAuthed({ children }: { children: ReactNode }) {
   const { account, initializing } = useAuth()
 
   if (initializing) return null
-  if (account) return <Navigate to={HOME[account.role]} replace />
+  if (account) return <Navigate to={roleHome(account.role)} replace />
   return <>{children}</>
 }

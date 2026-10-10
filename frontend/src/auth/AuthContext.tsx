@@ -14,9 +14,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { accountStore, setUnauthorizedHandler, tokenStore } from '@/api/client'
+import { ApiError, accountStore, setUnauthorizedHandler, tokenStore } from '@/api/client'
 import { authApi } from '@/api/endpoints'
-import type { Account, LoginRequest, Role } from '@/api/types'
+import type { Account, LoginRequest } from '@/api/types'
 
 interface AuthState {
   account: Account | null
@@ -56,8 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         accountStore.set(me)
         setAccount(me)
-      } catch {
-        if (!cancelled) logout()
+      } catch (err) {
+        if (cancelled) return
+        // 仅在凭据确实失效（401）时登出；网络故障等不该清掉本地有效 token
+        if (err instanceof ApiError && err.status === 401) logout()
       } finally {
         if (!cancelled) setInitializing(false)
       }
@@ -97,10 +99,3 @@ export function useAuth(): AuthState {
   if (!ctx) throw new Error('useAuth 必须在 AuthProvider 内使用')
   return ctx
 }
-
-/** 角色判断小工具 */
-export const isReader = (role: Role | undefined) => role === 'READER'
-export const isLibrarian = (role: Role | undefined) => role === 'LIBRARIAN'
-export const isAdmin = (role: Role | undefined) => role === 'SYSTEM_ADMIN'
-/** 馆员与系统管理员同属「员工」侧（BR-040） */
-export const isStaff = (role: Role | undefined) => role === 'LIBRARIAN' || role === 'SYSTEM_ADMIN'

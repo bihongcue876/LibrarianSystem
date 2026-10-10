@@ -1,6 +1,6 @@
 /** 应用路由 —— 按角色分流，权限最终由后端守卫裁决 */
 
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { RedirectIfAuthed, RequireAuth } from '@/auth/guards'
 import { LoginPage } from '@/pages/LoginPage'
@@ -15,6 +15,7 @@ import { PoliciesPage } from '@/pages/admin/PoliciesPage'
 import { AccountsPage } from '@/pages/admin/AccountsPage'
 import { StatsPage } from '@/pages/admin/StatsPage'
 import { Button, Card } from '@/components/ui'
+import { roleHome } from '@/auth/guards'
 import { useAuth } from '@/auth/AuthContext'
 
 const ALL = ['READER', 'LIBRARIAN', 'SYSTEM_ADMIN'] as const
@@ -23,17 +24,13 @@ const ADMIN = ['SYSTEM_ADMIN'] as const
 
 function NotFoundPage() {
   const { account } = useAuth()
+  const navigate = useNavigate()
   return (
     <div className="center-screen">
       <Card title="页面不存在">
         <div className="stack">
           <p className="muted">你访问的页面不存在，或已被移动。</p>
-          <Button
-            variant="primary"
-            onClick={() => {
-              window.location.href = account ? '/' : '/login'
-            }}
-          >
+          <Button variant="primary" onClick={() => navigate(account ? '/' : '/login')}>
             返回首页
           </Button>
         </div>
@@ -163,12 +160,5 @@ function RootRedirect() {
   if (initializing) return null
   if (!account) return <Navigate to="/login" replace />
 
-  const home =
-    account.role === 'SYSTEM_ADMIN'
-      ? '/admin/stats'
-      : account.role === 'LIBRARIAN'
-        ? '/circulation'
-        : '/catalog'
-
-  return <Navigate to={home} replace />
+  return <Navigate to={roleHome(account.role)} replace />
 }

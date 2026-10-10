@@ -26,8 +26,15 @@ const ToastContext = createContext<ToastApi | null>(null)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
   const seq = useRef(0)
+  const timers = useRef(new Map<number, number>())
 
   const dismiss = useCallback((id: number) => {
+    // 手动关闭时同时清掉定时器，避免之后触发一次无效 setState
+    const timer = timers.current.get(id)
+    if (timer !== undefined) {
+      window.clearTimeout(timer)
+      timers.current.delete(id)
+    }
     setItems((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
@@ -35,7 +42,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (tone: Tone, title: string, message?: string) => {
       const id = ++seq.current
       setItems((prev) => [...prev, { id, tone, title, message }])
-      window.setTimeout(() => dismiss(id), tone === 'error' ? 6000 : 3500)
+      const timer = window.setTimeout(() => dismiss(id), tone === 'error' ? 6000 : 3500)
+      timers.current.set(id, timer)
     },
     [dismiss],
   )

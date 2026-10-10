@@ -19,7 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
   BORROWED: 'var(--warning-500)',
   RESERVED: 'var(--info-500)',
   LOST: 'var(--danger-500)',
-  DAMAGED: 'var(--danger-400, #f87171)',
+  DAMAGED: 'var(--danger-500)',
   REMOVED: 'var(--gray-400)',
 }
 

@@ -24,7 +24,6 @@ import type {
   LoginRequest,
   PoliciesResponse,
   PreCheckResponse,
-  ReaderFinesResponse,
   ReaderLoansResponse,
   RegisterReaderRequest,
   RenewResponse,
@@ -33,11 +32,6 @@ import type {
   Role,
   TokenResponse,
 } from './types'
-
-// ---- 健康检查 --------------------------------------------------------
-
-export const health = () =>
-  request<{ status: string; service: string; version: string }>('/api/health', { anonymous: true })
 
 // ---- 认证与账号（auth_router） ---------------------------------------
 
@@ -119,25 +113,17 @@ export const cardApi = {
   issueCard: (readerId: number) =>
     request<BorrowCard>('/api/admin/borrow-cards', { method: 'POST', body: { reader_id: readerId } }),
 
-  cancelCard: (cardId: number, reason?: string) =>
-    request<BorrowCard>(`/api/admin/borrow-cards/${cardId}/cancel`, {
-      method: 'POST',
-      body: { reason: reason ?? null },
-    }),
+  cancelCard: (cardId: number) =>
+    request<BorrowCard>(`/api/admin/borrow-cards/${cardId}/cancel`, { method: 'POST' }),
 
   restoreCard: (cardId: number) =>
     request<BorrowCard>(`/api/admin/borrow-cards/${cardId}/restore`, { method: 'POST' }),
 
-  suspendCard: (cardId: number, reason?: string) =>
-    request<BorrowCard>(`/api/admin/borrow-cards/${cardId}/suspend`, {
-      method: 'POST',
-      body: { reason: reason ?? null },
-    }),
+  suspendCard: (cardId: number) =>
+    request<BorrowCard>(`/api/admin/borrow-cards/${cardId}/suspend`, { method: 'POST' }),
 
   resumeCard: (cardId: number) =>
     request<BorrowCard>(`/api/admin/borrow-cards/${cardId}/resume`, { method: 'POST' }),
-
-  getCard: (cardNo: string) => request<BorrowCard>(`/api/borrow-cards/${cardNo}`),
 
   listByReader: (readerId: number) =>
     request<BorrowCard[]>(`/api/admin/readers/${readerId}/borrow-cards`),
@@ -180,8 +166,6 @@ export const loanApi = {
 
   readerLoans: (readerId: number, status?: string) =>
     request<ReaderLoansResponse>(`/api/readers/${readerId}/loans`, { query: { status } }),
-
-  myFines: () => request<ReaderFinesResponse>('/api/me/fines'),
 }
 
 // ---- 预约（reservation_router） --------------------------------------

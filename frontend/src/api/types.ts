@@ -44,10 +44,8 @@ export const RESERVATION_STATUS = [
 ] as const
 
 export type Role = 'READER' | 'LIBRARIAN' | 'SYSTEM_ADMIN'
-export type ItemStatus = (typeof ITEM_STATUS)[number]['value']
-export type ItemType = (typeof ITEM_TYPES)[number]['value']
-export type CardStatusValue = (typeof CARD_STATUS)[number]['value']
-export type ReservationStatusValue = (typeof RESERVATION_STATUS)[number]['value']
+type CardStatusValue = (typeof CARD_STATUS)[number]['value']
+type ReservationStatusValue = (typeof RESERVATION_STATUS)[number]['value']
 
 /** 枚举值 → 中文标签（未命中时原样返回，避免界面出现空白） */
 export function labelOf(
@@ -180,7 +178,7 @@ export interface BorrowCard {
 
 // ---- 流通 ------------------------------------------------------------
 
-export interface CheckResult {
+interface CheckResult {
   step: string
   ok: boolean
   code: string
@@ -234,7 +232,7 @@ export interface CollectFineResponse {
 
 // ---- 查询借阅信息 ----------------------------------------------------
 
-export interface LoanEntry {
+interface LoanEntry {
   loan_id: number
   item_id: number
   barcode?: string | null
@@ -280,12 +278,6 @@ export interface ReaderLoansResponse {
     ready_at?: string | null
   }[]
   fines: FineEntry[]
-  unpaid_total: string
-}
-
-export interface ReaderFinesResponse {
-  unpaid: FineEntry[]
-  paid: FineEntry[]
   unpaid_total: string
 }
 
@@ -342,12 +334,3 @@ export interface CollectionStats {
   by_item_type: Record<string, number>
 }
 
-// ---- 错误 ------------------------------------------------------------
-
-export interface ApiErrorBody {
-  error: {
-    code: string
-    message: string
-    detail: Record<string, unknown>
-  }
-}

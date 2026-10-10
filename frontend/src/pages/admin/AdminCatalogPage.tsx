@@ -60,6 +60,7 @@ export function AdminCatalogPage() {
 
   // 删除题录
   const [deleteTitleTarget, setDeleteTitleTarget] = useState<BookListItem | null>(null)
+  const [deletingTitle, setDeletingTitle] = useState(false)
 
   const [reloadFlag, setReloadFlag] = useState(0)
   const reload = () => setReloadFlag((n) => n + 1)
@@ -114,6 +115,7 @@ export function AdminCatalogPage() {
 
   const removeTitle = async () => {
     if (!deleteTitleTarget) return
+    setDeletingTitle(true)
     try {
       await catalogApi.deleteBookTitle(deleteTitleTarget.title_id)
       toast.success('题录已删除', `《${deleteTitleTarget.title}》及其副本已置为下架`)
@@ -121,6 +123,8 @@ export function AdminCatalogPage() {
       reload()
     } catch (err) {
       toast.fromError(err, '删除失败')
+    } finally {
+      setDeletingTitle(false)
     }
   }
 
@@ -320,7 +324,11 @@ export function AdminCatalogPage() {
         footer={
           <>
             <Button onClick={() => setDeleteTitleTarget(null)}>取消</Button>
-            <Button variant="danger" onClick={() => void removeTitle()}>
+            <Button
+              variant="danger"
+              loading={deletingTitle}
+              onClick={() => void removeTitle()}
+            >
               确认删除
             </Button>
           </>
@@ -367,6 +375,8 @@ function ItemPanel({
 
   // 按条码/编号定位副本
   const [lookupId, setLookupId] = useState('')
+  /** 下拉框中选中的目标状态（草稿）；点「标记状态」后才组装为待确认的 statusTarget */
+  const [statusDraft, setStatusDraft] = useState('AVAILABLE')
   const [statusTarget, setStatusTarget] = useState<{ itemId: number; status: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
   const [acting, setActing] = useState(false)
@@ -523,10 +533,8 @@ function ItemPanel({
 
             <Field label="目标状态" hint="「已借出」「已预留」由流通流程驱动，不可手工设置">
               <Select
-                value={statusTarget?.status ?? 'AVAILABLE'}
-                onChange={(e) =>
-                  setStatusTarget({ itemId: Number(lookupId), status: e.target.value })
-                }
+                value={statusDraft}
+                onChange={(e) => setStatusDraft(e.target.value)}
                 options={MARKABLE_STATUS}
                 disabled={!lookupId}
               />
@@ -537,7 +545,9 @@ function ItemPanel({
                 block
                 disabled={!lookupId}
                 icon={<IconSearch size={15} />}
-                onClick={() => setStatusTarget({ itemId: Number(lookupId), status: 'AVAILABLE' })}
+                onClick={() =>
+                  setStatusTarget({ itemId: Number(lookupId), status: statusDraft })
+                }
               >
                 标记状态
               </Button>
