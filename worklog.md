@@ -866,3 +866,19 @@
 - **状态**：✅ 完成
 
 ---
+
+## 2026-09-22 代码质量修订（错误 / 安全 / 冗余）
+
+- 后端修复：还书时软删除题录副本置 REMOVED（FR-011 验收 4 接线）、过期预约同事务落库（BR-025b）、预约排队位置按题录分别计算、检索 available_only 下推 SQL 并对齐 count、LIKE 通配符转义、登录 role 收紧为枚举、非法金额入参 400、续借注入时钟透传、status 过滤 Literal 化、证号年份改北京时间
+- 安全加固：CORS 收敛为 localhost:5173 白名单、422 错误剥离 input/url 泄露、取消注销借阅证的无效 body
+- 冗余清理：删除 find_overdue / find_by_loan / find_active_by_reader_and_title / enqueue / with_iso / require_system_admin 等 8 处死代码；utc_now 收敛到 app/domain/clock.py（9 处 → 1 处）
+- 前端修复：检索防抖+请求序号守卫、馆藏页状态标记流程修正、AuthContext 网络故障不清登录态+登录回滚、账号页重置密码角色错配修正、借书弹窗快照、Toast 定时器清理、404 页 SPA 跳转、刷新不重置 skeleton、window.open noopener
+- 前端冗余：角色首页映射三处合一（roleHome）、删除未用 API 封装与工具函数、状态字典/色值统一
+- 验证：pytest 376 全绿 ×2、tsc 零错误、vite build 成功、真实服务冒烟（注册/登录/me/借阅查询/CORS/422/通配符）全部通过
+
+## 2026-09-22 冗余续修（第二轮）
+
+- 修复上轮引入的隐患：`query_service.py` 未定义名 `queue_cache`（预约排队位置改为按题录批量取队列）、`circulation_service.py` 遗留死变量 `limit/occupied`
+- 后端冗余清理（pyflakes 清零）：删除 `count_active_by_title` 端口+实现（零调用零测试）、12 处未用导入（`timezone`/`field`/`CardStatus`/`Iterator`/`Librarian`/`func`/`ItemType`/`ReaderType` 等，clock.py 收敛后的残留）
+- 前端冗余清理：`types.ts` 删除 `ItemStatus`/`ItemType`/`ReaderFinesResponse`/`ApiErrorBody` 四个未用类型、4 个内部类型收敛为非导出；`client.ts` 的 `describeValidationError` 转私有
+- 验证：pyflakes 0 警告、pytest 376 全绿、tsc 零错误、vite build 成功

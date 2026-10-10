@@ -8,6 +8,7 @@ venv/
 *.sqlite3
 .env
 docs_expr_description
+.vscode
 
 # 前端（pnpm）
 node_modules/
