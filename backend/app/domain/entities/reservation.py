@@ -8,17 +8,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Sequence
 
+from app.domain.clock import utc_now
 from app.domain.enums import ReservationStatus
 from app.domain.exceptions import ValidationError
 
 DEFAULT_VALIDITY_DAYS = 7
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class Reservation:

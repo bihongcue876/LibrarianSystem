@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Sequence
 
 from app.domain.entities.library_item import LibraryItem
-from app.domain.enums import ItemType
+from app.domain.enums import ItemStatus, ItemType
 from app.domain.value_objects.isbn import Isbn
 
 
@@ -99,9 +99,13 @@ class BookTitle:
                 item.remove()
 
     def mark_returned_item_removed(self, item: LibraryItem) -> None:
-        """题录已软删除时，副本归还后直接置 `REMOVED`（FR-011 验收标准 4）。"""
-        if self.is_deleted:
-            item._status = item.status.__class__.REMOVED  # noqa: SLF001
+        """题录已软删除时，副本归还后直接置 `REMOVED`（FR-011 验收标准 4）。
+
+        调用前提：副本刚完成归还流转（状态为 `AVAILABLE` 或 `RESERVED`），
+        因此可走 `remove()` 状态机，不绕过状态校验。
+        """
+        if self.is_deleted and item.status in (ItemStatus.AVAILABLE, ItemStatus.RESERVED):
+            item.remove()
 
     def __str__(self) -> str:  # pragma: no cover
         return f"BookTitle(id={self.title_id}, title={self.title!r})"

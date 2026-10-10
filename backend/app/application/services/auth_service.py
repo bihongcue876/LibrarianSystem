@@ -12,10 +12,10 @@
 
 from __future__ import annotations
 
-from app.application.exceptions import ForbiddenError, UnauthorizedError
+from app.application.exceptions import UnauthorizedError
 from app.application.ports import PasswordHasher, ReaderRepository, TokenIssuer
 from app.application.unit_of_work import UnitOfWork
-from app.domain.entities.reader import Librarian, Reader, SystemAdmin
+from app.domain.entities.reader import Librarian, Reader
 from app.domain.enums import ReaderType
 from app.domain.exceptions import ConflictError, NotFoundError, ValidationError
 from app.domain.factories import ReaderFactory
@@ -153,18 +153,6 @@ class AuthService:
                 reader.password_hash = self._hasher.hash(new_password)
                 self._readers.update(reader)
             self._uow.commit()
-
-    # ---- 校验辅助 --------------------------------------------------------
-
-    def require_system_admin(self, account) -> SystemAdmin:
-        if not isinstance(account, SystemAdmin):
-            raise ForbiddenError("仅系统管理员可执行该操作")
-        return account
-
-    def require_librarian_or_admin(self, account):
-        if not isinstance(account, (Librarian, SystemAdmin)):
-            raise ForbiddenError("仅图书管理员或系统管理员可执行该操作")
-        return account
 
 
 def _account_id(account) -> int:

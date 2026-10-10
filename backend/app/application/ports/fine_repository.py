@@ -13,9 +13,6 @@ class FineRepository(Protocol):
 
     def find_by_id(self, fine_id: int) -> FineRecord | None: ...
 
-    def find_by_loan(self, loan_id: int) -> FineRecord | None:
-        """一条借阅记录最多一条罚款（`loan_id` UNIQUE，BR-029）。"""
-
     def find_unpaid_by_reader(self, reader_id: int) -> Sequence[FineRecord]:
         """取未缴罚款——借书拦截校验用（BR-011）。"""
 

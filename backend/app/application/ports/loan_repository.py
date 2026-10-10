@@ -22,9 +22,6 @@ class LoanRepository(Protocol):
     def find_by_reader(self, reader_id: int) -> Sequence[Loan]:
         """取该读者全部借阅记录（含历史），按借出时间倒序。"""
 
-    def find_overdue(self, now=None) -> Sequence[Loan]:
-        """取全部已超期且未归还的记录（派生状态查询：`status='BORROWED' AND due_at < now`）。"""
-
     def count_active_by_reader(self, reader_id: int) -> int: ...
 
     def add(self, loan: Loan) -> Loan: ...

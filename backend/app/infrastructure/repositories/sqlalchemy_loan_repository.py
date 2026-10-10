@@ -11,10 +11,9 @@ from typing import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.domain.entities.loan import Loan, utc_now
+from app.domain.entities.loan import Loan
 from app.domain.enums import LoanStatus
 from app.infrastructure.mappers import LoanMapper
-from app.infrastructure.mappers._time import to_db
 from app.infrastructure.models import LoanModel
 
 PERSISTED_BORROWED = LoanStatus.BORROWED.value
@@ -53,16 +52,6 @@ class SqlAlchemyLoanRepository:
             select(LoanModel)
             .where(LoanModel.reader_id == reader_id)
             .order_by(LoanModel.borrowed_at.desc(), LoanModel.loan_id.desc())
-        ).all()
-        return [LoanMapper.to_domain(model) for model in models]
-
-    def find_overdue(self, now=None) -> Sequence[Loan]:
-        moment = to_db(now or utc_now())
-        models = self._session.scalars(
-            select(LoanModel).where(
-                LoanModel.status == PERSISTED_BORROWED,
-                LoanModel.due_at < moment,
-            )
         ).all()
         return [LoanMapper.to_domain(model) for model in models]
 

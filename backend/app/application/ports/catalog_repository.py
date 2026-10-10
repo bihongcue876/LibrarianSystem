@@ -30,7 +30,13 @@ class CatalogRepository(Protocol):
         limit: int = 20,
     ) -> list[BookTitle]: ...
 
-    def count_titles(self, keyword: str | None = None) -> int: ...
+    def count_titles(
+        self,
+        keyword: str | None = None,
+        item_type: ItemType | None = None,
+        available_only: bool = False,
+    ) -> int:
+        """与 `search_titles` 同口径统计（不含软删除题录）。"""
 
     def add_title(self, title: BookTitle) -> BookTitle: ...
 

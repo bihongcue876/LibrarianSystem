@@ -19,13 +19,4 @@ def iso(value: datetime | date | None) -> str | None:
     return value.isoformat()
 
 
-def with_iso(payload: dict, *fields: str) -> dict:
-    """把指定字段的 `datetime` 转成 ISO 字符串（原地返回新字典）。"""
-    result = dict(payload)
-    for field in fields:
-        if field in result:
-            result[field] = iso(result[field])
-    return result
-
-
-__all__ = ["iso", "with_iso"]
+__all__ = ["iso"]

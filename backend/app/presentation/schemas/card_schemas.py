@@ -9,10 +9,6 @@ class IssueCardRequest(BaseModel):
     reader_id: int = Field(..., ge=1)
 
 
-class CardActionRequest(BaseModel):
-    reason: str | None = Field(default=None, max_length=128)
-
-
 class BorrowCardResponse(BaseModel):
     card_id: int
     card_no: str

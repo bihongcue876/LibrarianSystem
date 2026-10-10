@@ -15,10 +15,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Sequence
 
-from app.domain.enums import CardStatus, ReaderType
+from app.domain.enums import ReaderType
 
 if TYPE_CHECKING:  # pragma: no cover - 仅类型检查，避免运行时循环导入
     from app.domain.entities.borrow_card import BorrowCard

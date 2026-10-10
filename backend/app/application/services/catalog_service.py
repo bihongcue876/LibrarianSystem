@@ -109,12 +109,18 @@ class CatalogService:
         if self._catalog.find_item_by_barcode(str(barcode)) is not None:
             raise ConflictError("条码已存在", code="BARCODE_EXISTS")
 
+        try:
+            parsed_price = Money.parse(price) if price else None
+        except ValueError as exc:
+            # `Money.parse` 对非法金额字符串抛 ValueError，规格要求 400
+            raise ValidationError(f"非法金额: {price!r}", code="INVALID_PARAMETER") from exc
+
         item = LibraryItemFactory.create(
             title=title,
             barcode=barcode,
             location=location,
             acquired_at=acquired_at,
-            price=Money.parse(price) if price else None,
+            price=parsed_price,
         )
         with self._uow:
             self._catalog.add_item(item)

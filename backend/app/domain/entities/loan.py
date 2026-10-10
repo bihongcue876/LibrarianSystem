@@ -11,9 +11,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
+from app.domain.clock import utc_now
 from app.domain.enums import LoanStatus
 from app.domain.exceptions import BusinessRuleError, ValidationError
 
@@ -21,10 +22,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from app.domain.entities.library_item import LibraryItem
     from app.domain.entities.reader import Librarian, Reader
     from app.domain.policies import BorrowPolicy
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class Loan:
@@ -56,7 +53,7 @@ class Loan:
 
     @property
     def status(self) -> LoanStatus:
-        return LoanStatus.RETURNED if self._status is LoanStatus.RETURNED else self._status
+        return self._status
 
     @property
     def persisted_status(self) -> LoanStatus:
@@ -137,15 +134,19 @@ class Loan:
             return False
         return not self.is_overdue(now)
 
-    def renew(self) -> None:
-        """执行续借：`due_at` +7 天，次数 +1（BR-015）。"""
+    def renew(self, now: datetime | None = None) -> None:
+        """执行续借：`due_at` +7 天，次数 +1（BR-015）。
+
+        `now` 与 `RenewalService` 的注入时钟保持一致，避免"注入时钟判定未超期、
+        实体内部用真实时钟判超期"的两道关卡结论矛盾。
+        """
         if self._status is LoanStatus.RETURNED:
             raise ValidationError("借阅记录已归还，不可续借", code="LOAN_ALREADY_RETURNED")
         if self.renew_count >= self.MAX_RENEW_COUNT:
             raise BusinessRuleError(
                 f"续借次数已达上限 {self.MAX_RENEW_COUNT} 次", code="RENEW_LIMIT_EXCEEDED"
             )
-        if self.is_overdue():
+        if self.is_overdue(now):
             raise BusinessRuleError("借阅记录已超期，不可续借", code="RENEW_OVERDUE")
         self.due_at = self.due_at + timedelta(days=self.RENEW_DAYS)
         self.renew_count += 1

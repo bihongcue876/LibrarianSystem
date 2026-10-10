@@ -15,16 +15,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Iterable, Mapping
 
 from app.domain.enums import ReaderType
 from app.domain.exceptions import ValidationError
 
-
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.domain.clock import utc_now as _utc_now
 
 
 @dataclass(frozen=True, slots=True)

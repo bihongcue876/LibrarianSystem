@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.application.ports import CardRepository, ReaderRepository
 from app.application.unit_of_work import UnitOfWork
@@ -14,6 +14,10 @@ from app.domain.entities.borrow_card import BorrowCard
 from app.domain.entities.reader import SystemAdmin
 from app.domain.exceptions import ConflictError, NotFoundError
 from app.domain.value_objects.card_number import CardNumber
+
+#: 证号年份按**北京时间**取（时间显示约定：存 UTC、显示北京时间）。
+#: 北京时间无夏令时，用固定 UTC+8 即可，且避免 Windows 缺 tzdata 的问题。
+_BEIJING = timezone(timedelta(hours=8), name="Asia/Shanghai")
 
 
 class CardService:
@@ -45,7 +49,7 @@ class CardService:
             if existing is not None:
                 raise ConflictError("该读者已有有效借阅证", code="CARD_ALREADY_EXISTS")
 
-            year = datetime.now(timezone.utc).year
+            year = datetime.now(_BEIJING).year
             card_no = CardNumber.generate(year, self._cards.next_sequence(year))
             card = BorrowCard.issue(reader, operator, card_no)
             self._cards.add(card)

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from app.domain.enums import ItemType, ReaderType
 from app.domain.policies import BorrowPolicy, FineRule
 
 

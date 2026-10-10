@@ -8,7 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, status
 
 from app.presentation.dependencies import AdminAccount, CardServiceDep, CurrentAccount
-from app.presentation.schemas import BorrowCardResponse, CardActionRequest, IssueCardRequest
+from app.presentation.schemas import BorrowCardResponse, IssueCardRequest
 from app.presentation.serializers import iso
 
 router = APIRouter(tags=["card"])
@@ -41,7 +41,6 @@ def issue_card(
 @router.post("/api/admin/borrow-cards/{card_id}/cancel", response_model=BorrowCardResponse)
 def cancel_card(
     card_id: int,
-    payload: CardActionRequest,
     account: AdminAccount,
     service: CardServiceDep,
 ) -> BorrowCardResponse:

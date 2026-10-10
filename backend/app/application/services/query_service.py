@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.application.exceptions import ForbiddenError
 from app.application.ports import (
@@ -20,13 +20,10 @@ from app.application.ports import (
     ReaderRepository,
     ReservationRepository,
 )
+from app.domain.clock import utc_now
 from app.domain.entities.reader import Librarian, SystemAdmin
 from app.domain.enums import ItemType
 from app.domain.exceptions import NotFoundError
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class QueryService:
@@ -70,7 +67,11 @@ class QueryService:
         return {
             "page": page,
             "page_size": page_size,
-            "total": self._catalog.count_titles(keyword=keyword),
+            "total": self._catalog.count_titles(
+                keyword=keyword,
+                item_type=ItemType(item_type) if item_type else None,
+                available_only=available_only,
+            ),
             "items": [
                 {
                     "title_id": title.title_id,
@@ -127,6 +128,11 @@ class QueryService:
 
         fines = list(self._fines.find_by_reader(reader_id))
         reservation_list = list(self._reservations.find_active_by_reader(reader_id))
+        # 排队位置按题录分别计算：先取该读者各题录的有效队列
+        queue_cache = {
+            title_id: list(self._reservations.find_active_by_title(title_id))
+            for title_id in {res.title_id for res in reservation_list}
+        }
 
         result = {
             "reader": {
@@ -143,7 +149,7 @@ class QueryService:
                     "reservation_id": res.reservation_id,
                     "title_id": res.title_id,
                     "status": res.status.value,
-                    "queue_position": res.queue_position(reservation_list),
+                    "queue_position": res.queue_position(queue_cache.get(res.title_id, [])),
                     "ready_at": res.ready_at,
                 }
                 for res in reservation_list

@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.domain.entities.loan import Loan
 from app.domain.enums import FineStatus, ItemType
@@ -22,8 +22,7 @@ OPERATOR_ROLE_LIBRARIAN = "LIBRARIAN"
 OPERATOR_ROLE_SYSTEM_ADMIN = "SYSTEM_ADMIN"
 
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.domain.clock import utc_now
 
 
 class FineRecord:

@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.application.exceptions import ForbiddenError
 from app.application.ports import (
@@ -26,6 +26,7 @@ from app.application.ports import (
     ReservationRepository,
 )
 from app.application.unit_of_work import UnitOfWork
+from app.domain.clock import utc_now
 from app.domain.domain_services import (
     BorrowEligibilityService,
     RenewalService,
@@ -33,14 +34,10 @@ from app.domain.domain_services import (
 )
 from app.domain.entities.fine_record import FineRecord
 from app.domain.entities.loan import Loan
-from app.domain.entities.reader import Librarian, Reader, SystemAdmin
-from app.domain.exceptions import NotFoundError, ValidationError
+from app.domain.entities.reader import Librarian, SystemAdmin
+from app.domain.exceptions import NotFoundError
 
 ROLE_READER = "READER"
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class CirculationService:
@@ -146,8 +143,6 @@ class CirculationService:
             self._catalog.update_item(item)
             self._uow.commit()
 
-        limit = reader.borrow_limit(policy)
-        occupied = reader.occupies_quota(loans, reservations) + 1
         return {
             "loan_id": loan.loan_id,
             "reader_id": loan.reader_id,
@@ -156,9 +151,8 @@ class CirculationService:
             "borrowed_at": loan.borrowed_at,
             "due_at": loan.due_at,
             "status": loan.persisted_status.value,
-            "remaining_quota": max(limit - occupied, 0),
+            "remaining_quota": max(reader.remaining_quota(loans, reservations, policy) - 1, 0),
         }
-
     # ---- 还书（UC-102 / FR-017） ----------------------------------------
 
     def return_book(self, barcode: str, operator, now: datetime | None = None) -> dict:
@@ -190,15 +184,28 @@ class CirculationService:
                 if candidate.billed_days > 0 and candidate.amount.is_positive():
                     fine = candidate
 
-            # 预约队列：判定失效 + 顺延 + 副本交接，同事务内完成（BR-025b）
-            queue = list(self._reservations.find_active_by_title(item.title_id))
-            head = self._queue.handover(queue, item=None, now=moment)
+            title = self._catalog.find_title_by_id(item.title_id, with_items=False)
+            title_deleted = title is not None and title.is_deleted
 
-            if head is None:
+            # 预约队列：惰性失效清理（BR-025b）。被置为 EXPIRED 的预约必须**同事务落库**，
+            # 否则库中永远 ACTIVE、持续占用读者额度。
+            queue = list(self._reservations.find_active_by_title(item.title_id))
+            for expired in self._queue.dequeue_expired(queue, now=moment):
+                self._reservations.update(expired)
+
+            head: object | None = None
+            if title_deleted:
+                # 题录已软删除（FR-011 验收 4）：副本归还后直接置 `REMOVED`，
+                # 不再为预约队列预留。队列中的残留预约由惰性判定逐次清理。
                 item.mark_returned(has_reservation=False)
+                title.mark_returned_item_removed(item)
             else:
-                item.mark_returned(has_reservation=True)
-                self._reservations.update(head)
+                head = self._queue.handover(queue, item=None, now=moment)
+                if head is None:
+                    item.mark_returned(has_reservation=False)
+                else:
+                    item.mark_returned(has_reservation=True)
+                    self._reservations.update(head)
 
             self._loans.update(loan)
             self._catalog.update_item(item)
@@ -274,8 +281,6 @@ class CirculationService:
             record = self._fines.find_by_id(fine_id)
             if record is None:
                 raise NotFoundError("罚款记录不存在", code="FINE_NOT_FOUND")
-            if record.status.value == "PAID":
-                raise ValidationError("该罚款已缴清", code="FINE_ALREADY_PAID")
             record.pay(operator)
             self._fines.update(record)
             self._uow.commit()

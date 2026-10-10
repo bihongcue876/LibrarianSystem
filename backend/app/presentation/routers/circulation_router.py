@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Query, status
 
 from app.presentation.dependencies import (
@@ -105,7 +107,9 @@ def collect_fine(
 def my_loans(
     account: ReaderAccount,
     service: QueryServiceDep,
-    status_filter: str | None = Query(default=None, alias="status"),
+    status_filter: Literal["current", "history", "overdue"] | None = Query(
+        default=None, alias="status"
+    ),
 ) -> ReaderLoansResponse:
     """查询本人借阅信息（UC-004）。
 

@@ -55,12 +55,7 @@ class PolicyService:
     def update_borrow_policy(
         self, reader_type: ReaderType | str, max_borrow_count: int, borrow_days: int, operator
     ) -> dict:
-        """维护借阅规则。数值非法（≤0）→ 400。"""
-        if int(max_borrow_count) < 1:
-            raise ValidationError("最大借阅数量必须 ≥ 1", code="INVALID_PARAMETER")
-        if int(borrow_days) < 1:
-            raise ValidationError("借阅期限必须 ≥ 1 天", code="INVALID_PARAMETER")
-
+        """维护借阅规则。数值非法（≤0）由 `BorrowPolicy.update` 校验并抛 400。"""
         with self._uow:
             policy = self._policies.get_borrow_policy()
             rule = policy.update(reader_type, int(max_borrow_count), int(borrow_days), operator)
@@ -85,10 +80,16 @@ class PolicyService:
         max_amount,
         operator,
     ) -> dict:
-        """维护罚款规则。金额为定点小数字符串；负数 → 400。"""
+        """维护罚款规则。金额为定点小数字符串；非法金额 / 负数 → 400。"""
         with self._uow:
             rule = self._policies.get_fine_rule()
-            entry = rule.update(item_type, daily_price, int(grace_days), max_amount, operator)
+            try:
+                entry = rule.update(item_type, daily_price, int(grace_days), max_amount, operator)
+            except ValueError as exc:
+                # `Money.parse` 对非法金额字符串抛 ValueError，规格要求 400
+                raise ValidationError(
+                    f"非法金额: {exc}", code="INVALID_PARAMETER"
+                ) from exc
             self._policies.save_fine_rule(rule)
             self._uow.commit()
 

@@ -26,7 +26,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 课程演示；生产需收敛白名单
+    # 白名单：前端开发服务器（Vite 默认 5173）。凭据模式要求显式来源，
+    # 通配符 `*` 与 `allow_credentials=True` 组合会被浏览器拒绝。
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,11 +74,19 @@ async def handle_application_error(request: Request, exc: ApplicationError) -> J
 async def handle_validation_error(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """请求体/查询参数校验失败 → 422（与 `14-api-spec.md` §1.3 一致）。"""
+    """请求体/查询参数校验失败 → 422（与 `14-api-spec.md` §1.3 一致）。
+
+    只回显 `loc` / `msg` / `type` 摘要——pydantic 的原始错误项会携带
+    用户输入原文（`input`）与内部模型路径（`url`），原样返回会泄露内部结构。
+    """
+    sanitized = [
+        {"loc": item.get("loc"), "msg": item.get("msg"), "type": item.get("type")}
+        for item in exc.errors()
+    ]
     return JSONResponse(
         status_code=422,
         content=_error_body(
-            "INVALID_PARAMETER", "请求参数校验失败", {"errors": exc.errors()}
+            "INVALID_PARAMETER", "请求参数校验失败", {"errors": sanitized}
         ),
     )
 

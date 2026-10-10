@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.application.exceptions import ForbiddenError
 from app.application.ports import (
@@ -17,14 +17,11 @@ from app.application.ports import (
     ReservationRepository,
 )
 from app.application.unit_of_work import UnitOfWork
+from app.domain.clock import utc_now
 from app.domain.domain_services import ReservationQueueService
 from app.domain.entities.reservation import Reservation
 from app.domain.enums import ItemStatus
 from app.domain.exceptions import BusinessRuleError, NotFoundError
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class ReservationService:
@@ -84,8 +81,12 @@ class ReservationService:
                     http_status=400,
                 )
 
-            # 可借性 / 重复 / 容量（BR-020、BR-023、BR-022）
+            # 可借性 / 重复 / 容量（BR-020、BR-023、BR-022）。
+            # 先做惰性失效清理并**同事务落库**（BR-025b），避免过期预约
+            # 继续占用容量与读者额度。
             queue = list(self._reservations.find_active_by_title(title_id))
+            for expired in self._queue.dequeue_expired(queue, now=moment):
+                self._reservations.update(expired)
             self._queue.can_reserve_or_raise(
                 title, queue, reader_id=reader_id, has_available_item=title.has_available_item()
             )
@@ -153,8 +154,18 @@ class ReservationService:
             if only_active
             else list(self._reservations.find_by_reader(reader_id))
         )
-        queue = list(self._reservations.find_active_by_reader(reader_id))
-        return [self._serialize(record, queue, moment) for record in records]
+        # 排队位置必须**按题录分别计算**：把读者跨题录的全部有效预约
+        # 混作一个队列会得到错乱的位置。
+        queue_cache: dict[int, list[Reservation]] = {}
+        serialized: list[dict] = []
+        for record in records:
+            title_id = record.title_id
+            if title_id not in queue_cache:
+                queue_cache[title_id] = list(
+                    self._reservations.find_active_by_title(title_id)
+                )
+            serialized.append(self._serialize(record, queue_cache[title_id], moment))
+        return serialized
 
     # ---- 内部 ------------------------------------------------------------
 

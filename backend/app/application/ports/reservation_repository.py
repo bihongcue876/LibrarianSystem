@@ -22,12 +22,6 @@ class ReservationRepository(Protocol):
     def find_by_reader(self, reader_id: int) -> Sequence[Reservation]:
         """取该读者全部预约记录（含历史）。"""
 
-    def find_active_by_reader_and_title(self, reader_id: int, title_id: int) -> Reservation | None:
-        """重复预约校验（BR-023）。"""
-
-    def count_active_by_title(self, title_id: int) -> int:
-        """队列人数——上限 5 校验（BR-022）。"""
-
     def add(self, reservation: Reservation) -> Reservation: ...
 
     def update(self, reservation: Reservation) -> None: ...

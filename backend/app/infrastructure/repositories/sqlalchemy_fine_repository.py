@@ -31,12 +31,6 @@ class SqlAlchemyFineRepository:
         model = self._session.get(FineRecordModel, fine_id)
         return FineMapper.to_domain(model) if model else None
 
-    def find_by_loan(self, loan_id: int) -> FineRecord | None:
-        model = self._session.scalar(
-            select(FineRecordModel).where(FineRecordModel.loan_id == loan_id)
-        )
-        return FineMapper.to_domain(model) if model else None
-
     def find_unpaid_by_reader(self, reader_id: int) -> Sequence[FineRecord]:
         models = self._session.scalars(
             select(FineRecordModel).where(

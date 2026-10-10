@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from app.domain.enums import CardStatus
@@ -20,9 +20,7 @@ from app.domain.value_objects.card_number import CardNumber
 if TYPE_CHECKING:  # pragma: no cover
     from app.domain.entities.reader import Reader, SystemAdmin
 
-
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.domain.clock import utc_now as _utc_now
 
 
 class BorrowCard:
@@ -54,7 +52,7 @@ class BorrowCard:
     def status(self) -> CardStatus:
         return self._status
 
-    def _transition(self, target: CardStatus, action: str) -> None:
+    def _transition(self, target: CardStatus) -> None:
         self._status = target
         if target is CardStatus.CANCELLED:
             self.cancelled_at = _utc_now()
@@ -111,7 +109,7 @@ class BorrowCard:
             raise ValidationError(
                 f"当前状态 {self._status.value} 不可注销", code="CARD_NOT_CANCELLABLE"
             )
-        self._transition(CardStatus.CANCELLED, "cancel")
+        self._transition(CardStatus.CANCELLED)
 
     def restore(self, admin: "SystemAdmin") -> None:
         """恢复：`CANCELLED` → `ACTIVE`（FR-007）。"""
@@ -122,7 +120,7 @@ class BorrowCard:
                 f"仅 `CANCELLED` 状态可恢复，当前为 {self._status.value}",
                 code="CARD_NOT_RESTORABLE",
             )
-        self._transition(CardStatus.ACTIVE, "restore")
+        self._transition(CardStatus.ACTIVE)
         self.cancelled_at = None
 
     def suspend(self, admin: "SystemAdmin") -> None:
@@ -133,7 +131,7 @@ class BorrowCard:
             raise ValidationError(
                 f"仅 `ACTIVE` 状态可挂失，当前为 {self._status.value}", code="CARD_NOT_SUSPENDABLE"
             )
-        self._transition(CardStatus.SUSPENDED, "suspend")
+        self._transition(CardStatus.SUSPENDED)
 
     def resume(self, admin: "SystemAdmin") -> None:
         """解挂：`SUSPENDED` → `ACTIVE`（FR-008）。"""
@@ -143,7 +141,7 @@ class BorrowCard:
             raise ValidationError(
                 f"仅 `SUSPENDED` 状态可解挂，当前为 {self._status.value}", code="CARD_NOT_RESUMABLE"
             )
-        self._transition(CardStatus.ACTIVE, "resume")
+        self._transition(CardStatus.ACTIVE)
 
     # ---- 判定 ------------------------------------------------------------
 

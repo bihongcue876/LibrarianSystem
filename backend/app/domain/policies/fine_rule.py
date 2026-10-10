@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from typing import Iterable, Mapping
 
@@ -28,9 +28,7 @@ from app.domain.enums import ItemType
 from app.domain.exceptions import ValidationError
 from app.domain.value_objects.money import Money
 
-
-def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.domain.clock import utc_now as _utc_now
 
 
 @dataclass(frozen=True, slots=True)

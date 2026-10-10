@@ -10,7 +10,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    func,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column

@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.domain.enums import ReaderType
+
+LoginRole = Literal["READER", "LIBRARIAN", "SYSTEM_ADMIN"]
 
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=32)
     password: str = Field(..., min_length=6, max_length=24)
-    role: str = Field(default="READER", description="登录入口：READER / LIBRARIAN / SYSTEM_ADMIN")
+    role: LoginRole = Field(default="READER", description="登录入口：READER / LIBRARIAN / SYSTEM_ADMIN")
 
 
 class TokenResponse(BaseModel):
@@ -47,4 +51,6 @@ class AddLibrarianRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=24)
-    role: str = Field(default="READER", description="目标账号角色：READER / LIBRARIAN")
+    role: Literal["READER", "LIBRARIAN"] = Field(
+        default="READER", description="目标账号角色：READER / LIBRARIAN"
+    )

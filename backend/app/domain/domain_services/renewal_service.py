@@ -81,4 +81,4 @@ class RenewalService:
                 http_status=400,
                 detail={"current": occupied, "limit": limit},
             )
-        loan.renew()
+        loan.renew(now=now)

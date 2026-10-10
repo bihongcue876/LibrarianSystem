@@ -111,24 +111,6 @@ class ReservationQueueService:
             raise BusinessRuleError(result.message, code=result.code, http_status=400)
         raise BusinessRuleError(result.message, code=result.code, http_status=409, detail=result.detail)
 
-    def enqueue(
-        self,
-        reservation: Reservation,
-        existing_queue: Sequence[Reservation],
-        max_size: int = MAX_QUEUE_SIZE,
-    ) -> CheckResult:
-        """入队校验（容量 + 重复）。"""
-        effective = self.order(existing_queue)
-        if any(res.reader_id == reservation.reader_id for res in effective):
-            return CheckResult.failed(
-                STEP_RESERVABLE, DUPLICATE_RESERVATION, "已存在对该标题的有效预约"
-            )
-        if len(effective) >= max_size:
-            return CheckResult.failed(
-                STEP_RESERVABLE, RESERVATION_QUEUE_FULL, f"预约队列已满（上限 {max_size} 人）"
-            )
-        return CheckResult.passed(STEP_RESERVABLE, f"入队成功，位置 {len(effective) + 1}")
-
     # ---- 失效清理与顺延 --------------------------------------------------
 
     def dequeue_expired(

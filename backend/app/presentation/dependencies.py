@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import Annotated
 
 import jwt
@@ -26,7 +25,7 @@ from app.application.services import (
     ReservationService,
 )
 from app.application.unit_of_work import UnitOfWork
-from app.domain.entities.reader import Librarian, Reader, SystemAdmin
+from app.domain.entities.reader import Reader, SystemAdmin
 from app.infrastructure.db.session import get_session
 from app.infrastructure.repositories import (
     SqlAlchemyCardRepository,

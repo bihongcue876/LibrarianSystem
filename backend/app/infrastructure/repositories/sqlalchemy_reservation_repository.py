@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.entities.reservation import Reservation
@@ -57,29 +57,6 @@ class SqlAlchemyReservationRepository:
             .order_by(ReservationModel.created_at.desc(), ReservationModel.reservation_id.desc())
         ).all()
         return [ReservationMapper.to_domain(model) for model in models]
-
-    def find_active_by_reader_and_title(self, reader_id: int, title_id: int) -> Reservation | None:
-        model = self._session.scalar(
-            select(ReservationModel).where(
-                ReservationModel.reader_id == reader_id,
-                ReservationModel.title_id == title_id,
-                ReservationModel.status.in_(EFFECTIVE_STATUSES),
-            )
-        )
-        return ReservationMapper.to_domain(model) if model else None
-
-    def count_active_by_title(self, title_id: int) -> int:
-        return int(
-            self._session.scalar(
-                select(func.count())
-                .select_from(ReservationModel)
-                .where(
-                    ReservationModel.title_id == title_id,
-                    ReservationModel.status.in_(EFFECTIVE_STATUSES),
-                )
-            )
-            or 0
-        )
 
     def add(self, reservation: Reservation) -> Reservation:
         model = ReservationMapper.to_model(reservation)

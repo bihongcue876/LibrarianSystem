@@ -13,7 +13,6 @@ from app.presentation.schemas.auth_schemas import (
 )
 from app.presentation.schemas.card_schemas import (
     BorrowCardResponse,
-    CardActionRequest,
     IssueCardRequest,
 )
 from app.presentation.schemas.catalog_schemas import (
@@ -61,7 +60,6 @@ __all__ = [
     "BorrowBookResponse",
     "BorrowCardResponse",
     "CancelReservationResponse",
-    "CardActionRequest",
     "CollectFineResponse",
     "CollectionStatsResponse",
     "CreateReservationRequest",
