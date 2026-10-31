@@ -22,3 +22,12 @@ frontend/.pnpm-store/
 #   backend/uv.lock
 #   backend/.python-version
 #   frontend/pnpm-lock.yaml
+
+# 报告图：保留 .mmd 源与 3 张最终 PNG；不提交 SVG/旧草图/临时配置
+figures/*.svg
+figures/*.bak*
+figures/mermaid-config-report.json
+
+# 报告临时文件与含个人信息的备份
+scripts/_compare.docx
+实验报告.before-font.docx
