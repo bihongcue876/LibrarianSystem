@@ -3,7 +3,7 @@
 > **本文件是 Agent 行为的时序记录**，按时间顺序记录 AI Agent 在本项目中的每一步操作。
 > 用途：① 实验要求的过程留痕；② 答辩时说明"谁做了什么"；③ 出错时回溯定位。
 >
-> 详细版 AI 使用记录另见 `specs/19-ai-usage-log.md`（实验要求的正式交付物）。
+> `specs/19-ai-usage-log.md` 是实验要求的正式交付物（面向验收的摘要）；本文件是更详细的过程时序记录。
 
 ---
 
@@ -39,24 +39,30 @@
 | 5 | 升级 worklog 为时序记录文档 | 准备 | `worklog.md` | ✅ 完成 |
 | 6 | 生成开发宪法（16 条原则） | 实验一 · Inception | `constitution.md` | ✅ 完成 |
 | 7 | 建立 AI 使用记录 + 明确工具选型 | 准备 | `19-ai-usage-log.md` | ✅ 完成 |
-| 8 | 生成需求规格（29 FR / 50 BR / 14 NFR） | 实验一 · Elaboration | `02-requirements.md` | ⏳ 待审查 |
-| 9 | 生成用例文本（31 个用例） | 实验一 · Elaboration | `03-use-cases.md` | ⏳ 待审查 |
-| 10 | 生成用例图（5 张 Mermaid 图） | 实验一 · Elaboration | `04-use-case-model.md` | ⏳ 待审查 |
-| 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ⏳ 待审查 |
-| 12 | 生成领域类图（7 张 Mermaid 图） | 实验一 · Elaboration | `06-domain-class-diagram.md` | ⏳ 待审查 |
-| 13 | 生成架构设计（4 层 + 8 条 ADR） | 实验一 · Elaboration | `07-architecture.md` | ⏳ 待审查 |
-| 14 | 生成包图（7 张 Mermaid 图） | 实验一 · Elaboration | `08-package-diagram.md` | ⏳ 待审查 |
-| 15 | 生成数据库设计（11 张表 + ER 图） | 实验一 · Elaboration | `13-database-design.md` | ⏳ 待审查 |
-| 16 | 生成风险分析与审查清单 | 实验一 · Elaboration | `17`、`18` | ⏳ 待审查 |
+| 8 | 生成需求规格（29 FR / 50 BR / 14 NFR） | 实验一 · Elaboration | `02-requirements.md` | ✅ 完成（步骤 17 审查通过） |
+| 9 | 生成用例文本（31 个用例） | 实验一 · Elaboration | `03-use-cases.md` | ✅ 完成（步骤 17 审查通过） |
+| 10 | 生成用例图（5 张 Mermaid 图） | 实验一 · Elaboration | `04-use-case-model.md` | ✅ 完成（步骤 17 审查通过） |
+| 11 | 生成领域模型 | 实验一 · Elaboration | `05-domain-model.md` | ✅ 完成（步骤 17 审查通过） |
+| 12 | 生成领域类图（7 张 Mermaid 图） | 实验一 · Elaboration | `06-domain-class-diagram.md` | ✅ 完成（步骤 17 审查通过） |
+| 13 | 生成架构设计（4 层 + 8 条 ADR） | 实验一 · Elaboration | `07-architecture.md` | ✅ 完成（步骤 17 审查通过） |
+| 14 | 生成包图（7 张 Mermaid 图） | 实验一 · Elaboration | `08-package-diagram.md` | ✅ 完成（步骤 17 审查通过） |
+| 15 | 生成数据库设计（11 张表 + ER 图） | 实验一 · Elaboration | `13-database-design.md` | ✅ 完成（步骤 17 审查通过） |
+| 16 | 生成风险分析与审查清单 | 实验一 · Elaboration | `17`、`18` | ✅ 完成（步骤 17 审查通过） |
 | 17 | 人工审查与修订 | 实验一 · Elaboration | 修订 10 份 specs | ✅ 完成（含 17b 收尾，两轮审查修复 20 类问题） |
 | 17b | 收尾验证与 Q-02/03/05 清零 | 实验一 · Elaboration | `02`、`03`、`18` | ✅ 完成 |
-| 18 | 冻结实验一 Baseline | 实验一 · Elaboration | 本地备份冻结（未打标签） | ✅ 完成（用户选择备份方式） |
+| 18 | 冻结实验一 Baseline | 实验一 · Elaboration | 本地备份 + `experiment1-specs-baseline-v1` 标签 | ✅ 完成（后补标签） |
 | 19 | 补齐 AI 使用日志第 12~13 次记录 | 实验一 · 收尾 | `19-ai-usage-log.md` | ✅ 完成 |
 | 20 | 生成实验二 7 份详细设计规格 | 实验二 · Elaboration | `09`、`10`、`11`、`12`、`14`、`15`、`16` | ✅ 完成（含 12 处规格校准） |
-| 21 | 冻结实验二 Specs baseline | 实验二 · Elaboration | — | ✅ 完成（用户授权按计划推进） |
+| 21 | 冻结实验二 Specs baseline | 实验二 · Elaboration | `experiment2-specs-baseline-v1` 标签 | ✅ 完成（后补标签） |
 | 22 | 实现后端代码（18 个任务） | 实验二 · Construction | `backend/` 62 个文件 | ✅ 完成 |
 | 23 | 编写并跑通自动化测试 | 实验二 · Construction | `backend/tests/` 16 个文件 | ✅ 完成（376 passed） |
 | 24 | 生成 README + 更新日志 | 实验二 · Transition | `README.md`、`19`、`worklog.md` | ✅ 完成 |
+| 25 | 搭建本地 pytest 入口 + IDE 集成 | 实验二 · 环境可用性 | `pytest.ini`、`run-tests.ps1`、`.vscode/*` | ✅ 完成 |
+| 26 | 系统可用性盘点 + 真实端到端验证 | 实验二 · 可用性确认 | `backend/scripts/init_db.py`、`README.md` | ✅ 完成 |
+| 27 | 实现 React 前端（范围外配套） | 实验二 · 前端 | `frontend/` | ✅ 完成 |
+| 28 | 文档重组 + 文档断言核对 | 实验二 · Transition | `README.md`、`DEVELOPMENT.md` | ✅ 完成 |
+
+> 2026-09-22 代码质量修订（两轮）与 2026-10-10 默认书目独立化见文末日期小节，不单列步骤。
 
 ---
 
@@ -667,6 +673,7 @@
   2. Mermaid 图验证渲染正常
   3. `02` §7 剩余待确认问题裁定完毕
 - **实际处置**：用户选择**本地备份**方式冻结（未打 Git 标签）。三项前置条件均已满足。
+- **Git**：`experiment1-specs-baseline-v1`（后补，指向 `abdd6c2`）
 - **状态**：✅ 完成
 
 ---
@@ -703,7 +710,7 @@
   - `14` 虚构了 2 条约束（题录删除时有未归还副本则 409、注销借阅证时有未归还借阅则 409），均与 `02` 相反 → 删去
   - `06`/`13` 把"题录删除联动"引作 `BR-042`，实为权限校验规则 → 更正为 `FR-011`
   - `09` 预约状态机写了不存在的 `COMPLETED` 态 → 更正为 4 态
-- **Git**：`docs: generate experiment 2 detailed design specs`
+- **Git**：`3414cf8 docs: generate experiment 2 detailed design specs`
 - **状态**：✅ 完成
 
 ---
@@ -712,7 +719,14 @@
 
 - **触发**：用户指令"建议补完"
 - **操作**：实验二 7 份规格已提交，视为冻结。用户未要求打标签，沿用本地备份方式。
+- **Git**：`3414cf8` + `experiment2-specs-baseline-v1`（后补）
 - **状态**：✅ 完成
+
+### 补记：baseline 标签补打
+
+- **原因**：教师总述与实验二前置检查要求 `git tag` 能看到两个 baseline；原流程用本地备份冻结，`git tag` 为空。
+- **操作**：`experiment1-specs-baseline-v1` → `abdd6c2`（实验一最后一笔）；`experiment2-specs-baseline-v1` → `3414cf8`（实验二规格提交）。
+- **结果**：`git tag` 显示两个标签，未改动任何文件。
 
 ---
 
@@ -857,7 +871,7 @@
   2. **curl 片段在 PowerShell 不可用**：PS 5.1 中 `curl` 是 `Invoke-WebRequest` 别名（实测 CommandType=Alias），`$(...)` 也不生效 → 标注 bash 专用并补 PowerShell 原生写法
   3. **接口表缺 10 余条、路径参数简写失实**：实际 36 条路由；真实参数名 `{loan_id}` / `{fine_id}` / `{reader_id}` / `{reservation_id}`，照抄 `{id}` 会 404（AST 解析 7 个 router + 运行时 OpenAPI 交叉核对）
   4. 测试耗时「21~35 s」→ 实测约 13 s
-  5. UML 图数口径：列出的 24 张无误，但全仓库 mermaid 块为 25（`18-review-checklist.md` 另有 1 张）
+  5. UML 图数口径：列出的 24 张无误；`18-review-checklist.md` 里出现的 `mermaid` 是 grep 检查命令的字符串，不是图，不应计入（此前误记为 25）
 - **顺带确认的可用性限制**：后端鉴权是普通 `Depends` 依赖，未声明 OpenAPI `securitySchemes` → Swagger UI **没有 Authorize 按钮**，需登录的接口在 `/docs` 里无法直接试
 - **产物**：
   - `README.md` 精简为：简介 / 技术栈 / 目录结构 / 启动方式（后端 / 前端 / 测试）/ 更多文档索引

@@ -823,22 +823,277 @@ WorkBuddy（CodeBuddy Agent）
 
 ---
 
+## 第 16 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 环境可用性（2026-09-20）
+
+### 使用任务
+
+搭建本地 pytest 入口与 IDE 集成，解决仓库根目录跑测试报 `ModuleNotFoundError: No module named 'app'`。
+
+### 输入 Prompt 摘要
+
+用户要求：“本地搭建 pytest，以便进行测试。”
+
+### Agent 修改文件
+
+`pytest.ini`、`run-tests.ps1`、`.vscode/settings.json`、`.vscode/extensions.json`、`backend/pyproject.toml`、`README.md`
+
+### 输出摘要
+
+- 根因：pytest 只从当前目录向上找配置，仓库根没有 `app` 包；`backend/pyproject.toml` 补 `pythonpath = ["."]`，仓库根新增 `pytest.ini`（`testpaths = backend/tests`）。
+- 新增 `run-tests.ps1`：`$PSScriptRoot` 定位项目、缺环境自动 `uv sync`、无 uv 回退 venv python、支持 `-Scope` / `-Keyword`。
+- `.vscode` 配置解释器、测试发现、Pylance `extraPaths`。
+- README 第 6 节重写：三种运行入口、脚本用法、常用筛选、IDE 配置。
+
+### 测试结果
+
+3 个入口 + 2 个脚本分支全部 **376 passed**。
+
+### 人工审查结果
+
+用户确认入口可用；步骤 28 又复核了四种入口。
+
+### Git 提交
+
+`b4b15f1` chore: set up local pytest entry points and IDE integration
+
+---
+
+## 第 17 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 可用性确认（2026-09-20）
+
+### 使用任务
+
+盘点 Windows 环境可用性，修复 `init_db.py` 的 GBK 崩溃，跑通真实端到端业务闭环。
+
+### 输入 Prompt 摘要
+
+用户要求确认 Windows 机器上的搭建程度与实际可用范围。
+
+### Agent 修改文件
+
+`backend/scripts/init_db.py`、`README.md`
+
+### 输出摘要
+
+- 真实缺陷：`print("✓ …")` 在 GBK 控制台抛 `UnicodeEncodeError`，表已建但规则与管理员未播种，退出码 1；改为 `[OK]` / `[SKIP]` / `[FAIL]` 纯 ASCII 输出。
+- 确认初始化脚本幂等（重跑只补齐缺失行）。
+- 启动 uvicorn + SQLite，跑通：管理员登录 → 新增馆员 → 建题录/副本 → 读者注册 → 越权 403 → 办证 `CARD2026000001` → 借书前置确认 → 借书 → 还书 → 查询 → 馆藏统计。
+- 实测本科额度 5、借期 30 天（9/20 → 10/20）、借后剩余额度 4。
+
+### 测试结果
+
+376 passed；端到端全链路通过。
+
+### 人工审查结果
+
+用户确认后端功能完整可用；交互入口为 Swagger UI（`/docs`），前端不在实验二范围。
+
+### Git 提交
+
+`b91e93b` fix: make init_db.py output ASCII-safe on Windows console
+
+---
+
+## 第 18 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 前端实现（2026-09-20，实验二范围外配套）
+
+### 使用任务
+
+按用户要求实现 React 经典技术栈 Web 客户端。
+
+### 输入 Prompt 摘要
+
+用户：“我需要一个美观有效的前端。请依据此，采用 react 经典技术框架完成。”
+
+### Agent 修改文件
+
+`frontend/`（30+ 文件）
+
+### 输出摘要
+
+- 选型 React 18 + TypeScript 5.9 + Vite 5 + React Router 6；不引入 UI 组件库与图标库，CSS 变量自建设计系统，内联 SVG 图标。
+- 契约先行：通读后端 router / schema / `query_service`，整理端点、字段、权限、格式约束（`^CARD\d{10}$`、`^BC\d{8}$`）。
+- 10 个页面 + 角色过滤（读者 2 / 馆员 4 / 管理员 9）。
+- 如实披露后端缺口：`find_items_by_title` 未暴露 HTTP 端点；不擅自新增接口，改为新增副本回显 `item_id` + `Alert` 说明。
+
+### 测试结果
+
+`pnpm typecheck` 0 错误；`pnpm build` 成功（58 modules，`index.js` 251.58 kB / gzip 78.26 kB）；45 项接口断言；真实 Chromium 实测管理员登录 → 馆员借书 → 还书 → 读者查看借阅，数据正确落库。
+
+### 人工审查结果
+
+用户确认前端可用；前端列为实验二范围外配套，不计入 376 项后端测试。
+
+### Git 提交
+
+`3de155a` feat: add React web frontend for library system
+`a51803d` docs: document frontend setup and end-to-end verification
+
+---
+
+## 第 19 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · Transition（2026-09-20）
+
+### 使用任务
+
+README 精简为简介/启动，详细内容移入 `DEVELOPMENT.md`；对文档断言做全面实机核对。
+
+### 输入 Prompt 摘要
+
+用户要求：“README 只保留简介与启动方式，详细内容另立文档；其余成分也照文档做基本检查。”
+
+### Agent 修改文件
+
+`README.md`、`DEVELOPMENT.md`
+
+### 输出摘要
+
+- 实机核对：`init_db.py` 两种调用 / 幂等 / 缺密码时返回码 2；四个 pytest 入口 376 passed；前端 typecheck/build；前后端联调（health / books / 错误密码 401）；四个 `LIBRARY_*` 环境变量；specs 21 文件。
+- 修正 5 处文档失实：Vite 监听 `localhost` 而非 `127.0.0.1`（IPv6 解析）；PowerShell 中 `curl` 是 `Invoke-WebRequest` 别名；接口表缺 10 余条、路径参数简写 `{id}` 失实（实际 36 条）；测试耗时 21–35 s → 实测约 13 s；UML 图数 24 无误但全仓库 Mermaid 块为 25（`18` 另有 1 张）。
+- 确认可用性限制：Swagger 未声明 `securitySchemes`，`/docs` 没有 Authorize 按钮。
+
+### 测试结果
+
+376 passed；前端 `tsc` 零错误、`vite build` 成功；联调通过。
+
+### 人工审查结果
+
+用户确认 README 精简方案；遗留可选改进（vite `server.host`、securitySchemes、run-tests UTF-8、重置管理员密码脚本）记入 `DEVELOPMENT.md` §14。
+
+### Git 提交
+
+`d805c96` docs: description（文档重组）
+
+---
+
+## 第 20 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 代码质量修订（2026-09-22，两轮）
+
+### 使用任务
+
+修复错误 / 安全 / 冗余问题，第二轮续修上轮引入的隐患。
+
+### 输入 Prompt 摘要
+
+用户要求对实验二代码做质量修订（错误 / 安全 / 冗余），随后要求续修。
+
+### Agent 修改文件
+
+后端 `app/` 多处、前端 `frontend/src/` 多处；未新增测试。
+
+### 输出摘要
+
+- 第一轮后端：还书软删除副本置 `REMOVED`、过期预约同事务落库、排队位置按题录分别计算、`available_only` 下推 SQL、LIKE 通配符转义、登录 role 收紧为枚举、非法金额 400、续借时钟透传、status `Literal` 化、证号年份北京时间。
+- 第一轮安全/冗余：CORS 收敛为 `localhost:5173` 白名单、422 剥离 `input/url`、取消注销借阅证的无效 body；删 8 处死代码、`utc_now` 9 处收敛到 1 处。
+- 第一轮前端：检索防抖 + 请求序号、馆藏状态标记、AuthContext 网络故障、重置密码角色错配、借书弹窗快照、Toast 定时器、404 SPA、skeleton、`noopener`；角色首页映射三处合一。
+- 第二轮：修 `query_service.py` 未定义 `queue_cache`、`circulation_service.py` 死变量；pyflakes 清零；删 `count_active_by_title` 端口 + 实现、12 处未用导入；前端删 4 个未用类型、4 个内部类型收敛、`describeValidationError` 私有。
+
+### 测试结果
+
+pytest 376 全绿 ×2；`tsc` 零错误；`vite build` 成功；真实服务冒烟（注册 / 登录 / me / 借阅 / CORS / 422 / 通配符）通过；pyflakes 0 警告。
+
+### 人工审查结果
+
+用户确认两轮修订；未改变实验二规格范围。
+
+### Git 提交
+
+`feat: application update` / `frontend: frontend part` 系列（详见 `worklog.md` 2026-09-22 两小节）
+
+---
+
+## 第 21 次使用
+
+### 使用工具
+
+WorkBuddy（CodeBuddy Agent）
+
+### 使用阶段
+
+实验二 · 数据初始化（2026-10-10）
+
+### 使用任务
+
+把默认书目从 `init_db.py` 外置为数据文件 + 独立播种脚本。
+
+### 输入 Prompt 摘要
+
+用户要求默认书目不应写进 `init_db.py`，应作为数据库数据由独立脚本加载。
+
+### Agent 修改文件
+
+`backend/data/default_catalog.json`、`backend/scripts/seed_catalog.py`、`README.md`、`DEVELOPMENT.md`
+
+### 输出摘要
+
+- `init_db.py` 保持最小初始化（建表 + 规则 + 管理员）；新增 JSON 约 10 个题录（覆盖五种 `item_type`）+ 默认副本数与入库日期。
+- `seed_catalog.py` 幂等写入：同名活跃去重、副本按题录下是否已有副本判断、条码接续 `BC` + 8 位序号、`created_by` 取首个管理员（无则 NULL）、全 ASCII 输出。
+
+### 测试结果
+
+临时库 `init_db` → `seed_catalog` 得 10 题录 / 20 副本（全 `AVAILABLE`，`BC00000001`~`BC00000020`），二跑 0 新增；无管理员时 `[WARN]` 且 `created_by` 为 NULL；pytest 376 全绿。
+
+### 人工审查结果
+
+用户确认数据外置方案；`init_db.py` 未改，结构初始化与业务数据分离。
+
+### Git 提交
+
+`9ad7f6f` feat: default data
+
+---
+
 ## 使用统计
 
 | 项目 | 数值 |
 |---|---|
-| 累计使用次数 | 15 次 |
-| 已生成规格文档 | 20 份 |
+| 累计使用次数 | 21 次 |
+| 已生成规格文档 | 22 份（`specs/` 全部文件，含 `constitution.md` 与 `UML格式说明.md`） |
 | 已发现并裁定规格冲突 | 5 处 |
-| 已发现并修正的规格不一致 | 18 处（实验一 1 处 + 详细设计 12 处 + 实现阶段 7 处，含 2 处重复计入） |
-| **自检发现并修复的问题** | **20 类**（实验一）+ **19 处**（实验二，含 1 处真实分层违规） |
+| 已发现并修正的规格不一致 | 18 处（实验一 1 + 详细设计 12 + 实现 7，含 2 处重复计入）；另第 19 次修正文档失实 5 处 |
+| **自检发现并修复的问题** | **20 类**（实验一）+ **19 处**（实验二）+ **5 处**（文档失实） |
 | 已识别风险项 | 30 项（3 高 / 19 中 / 8 低） |
-| 代码规模 | 128 个 Python 文件（业务代码 88）；测试 376 项全绿 |
-| Git 提交次数 | 18 次 |
+| 代码规模 | 130 个 Python 文件（app 109 / tests 18 / scripts 3）；测试 376 项全绿；前端 30+ 文件 |
+| Git 提交次数 | 40 次 |
 
 ---
 
 ## 后续待记录
 
-- 实验二 specs baseline 标签（`experiment2-specs-baseline-v1`，用户采用本地备份方式冻结）
-- 前端实现（本期未纳入实验二范围；包管理约定为 pnpm）
+- 无。`experiment2-specs-baseline-v1` 已补打（指向 `3414cf8`）；前端已列入第 18 次；UML 格式差异见 `specs/UML格式说明.md`。

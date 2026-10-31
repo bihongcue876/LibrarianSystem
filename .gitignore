@@ -31,3 +31,11 @@ figures/mermaid-config-report.json
 # 报告临时文件与含个人信息的备份
 scripts/_compare.docx
 实验报告.before-font.docx
+
+# 报告图源/生成物：不提交，最终图已嵌入 docx
+figures/
+
+# 报告源、内部数据与导出脚本：只交 docx 时不提交
+实验报告.md
+实验数据说明.md
+scripts/
